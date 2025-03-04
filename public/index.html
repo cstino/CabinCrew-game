@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CabinCrew</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="screen">
+      <div class="container">
+        <h1>CabinCrew</h1>
+        <div class="auth-form">
+          <h2>Sign In / Register</h2>
+          <input type="text" id="username" placeholder="Username" required>
+          <input type="email" id="email" placeholder="Email" required>
+          <input type="password" id="password" placeholder="Password" required>
+          <button id="auth-button">Sign In / Register</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Lobby Screen -->
+    <div id="lobby-screen" class="screen hidden">
+      <div class="container">
+        <h1>CabinCrew Lobby</h1>
+        <div class="lobby-options">
+          <div class="option-box">
+            <h2>Create Room</h2>
+            <input type="text" id="room-name" placeholder="Room Name" required>
+            <input type="number" id="room-code" placeholder="Room Code (numbers only)" required>
+            <input type="number" id="initial-credits" placeholder="Initial Credits" value="10" min="1" step="0.1">
+            <input type="number" id="round-count" placeholder="Number of Rounds" value="5" min="1" max="20">
+            <div class="checkbox">
+              <input type="checkbox" id="enable-bonuses" checked>
+              <label for="enable-bonuses">Enable Bonuses</label>
+            </div>
+            <button id="create-room-button">Create Room</button>
+          </div>
+          <div class="option-box">
+            <h2>Join Room</h2>
+            <input type="number" id="join-room-code" placeholder="Enter Room Code" required>
+            <button id="join-room-button">Join Room</button>
+          </div>
+        </div>
+        <div class="profile-section">
+          <button id="profile-button">View Profile</button>
+          <button id="friends-button">Friends</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Game Room Screen -->
+    <div id="game-room-screen" class="screen hidden">
+      <div class="container">
+        <div class="room-header">
+          <h1 id="room-title">Room Name</h1>
+          <div class="room-info">
+            <span id="round-info">Round 0/5</span>
+            <span id="room-code-display">Code: 0000</span>
+          </div>
+        </div>
+        
+        <div class="game-container">
+          <div class="multiplier-container">
+            <div id="multiplier-display">1.00x</div>
+            <div id="multiplier-animation"></div>
+          </div>
+          
+          <div id="player-credits">Your Credits: <span id="credit-amount">10.00</span></div>
+          
+          <div class="bet-controls">
+            <label for="bet-amount">Puntata:</label>
+            <input type="number" id="bet-amount" min="0.10" max="100" step="0.10" value="0.10">
+            <button id="sit-out-button" class="secondary-button">Salta round</button>
+          </div>
+          
+          <div class="player-actions">
+            <button id="ready-button" class="action-button">Ready</button>
+            <button id="eject-button" class="action-button primary">EJECT</button>
+          </div>
+          
+          <div class="bonus-indicators">
+            <div class="bonus-item" id="resurrection-bonus">
+              <div class="bonus-icon">🔄</div>
+              <div class="bonus-label">Resurrection</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="game-status">
+          <div id="status-message">Waiting for players to join...</div>
+          <div id="countdown-timer" class="hidden">Next round in <span id="timer-value">10</span>s</div>
+        </div>
+        
+        <div class="player-list">
+          <h2>Players</h2>
+          <div id="players-container"></div>
+        </div>
+        
+        <div class="results-container hidden" id="results-screen">
+          <h2>Round Results</h2>
+          <div id="crash-point"></div>
+          <div id="results-list"></div>
+        </div>
+        
+        <div class="room-footer">
+          <button id="chat-button" class="secondary-button">Chat</button>
+          <button id="leave-room-button">Leave Room</button>
+        </div>
+        
+        <div id="chat-container" class="hidden">
+          <div id="chat-messages"></div>
+          <div class="chat-input-container">
+            <input type="text" id="chat-input" placeholder="Type a message...">
+            <button id="send-message-button">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Profile Screen -->
+    <div id="profile-screen" class="screen hidden">
+      <div class="container">
+        <h1>Your Profile</h1>
+        <div class="profile-info">
+          <div class="profile-header">
+            <div id="profile-username">Username</div>
+            <div id="selected-badge">No Badge</div>
+          </div>
+          <div class="stats-container">
+            <div class="stat-item">
+              <span class="stat-label">Total Games:</span>
+              <span id="total-games" class="stat-value">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Highest Multiplier:</span>
+              <span id="highest-multiplier" class="stat-value">1.00x</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Games Won:</span>
+              <span id="games-won" class="stat-value">0</span>
+            </div>
+          </div>
+          <div class="badges-container">
+            <h2>Your Badges</h2>
+            <div id="badges-list"></div>
+          </div>
+        </div>
+        <button id="back-from-profile">Back to Lobby</button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="dist/bundle.js"></script>
+</body>
+</html>
