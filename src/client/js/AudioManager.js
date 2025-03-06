@@ -9,7 +9,7 @@ class AudioManager {
     
     // Musica del menu - Scegli un file specifico
     this.menuMusic = new Audio();
-    this.menuMusic.src = '/asset/audio/ripples in the sand.mp3'; // Cambia con il nome del tuo file
+    this.menuMusic.src = '/asset/audio/ripples in the sand.mp3';
     this.menuMusic.loop = true;
     this.menuMusic.volume = this.musicVolume;
     
@@ -20,7 +20,6 @@ class AudioManager {
       '/asset/audio/stay.mp3',
       '/asset/audio/No Time For Caution.mp3',
       '/asset/audio/coward.mp3'
-      // Aggiungi altri brani se necessario
     ];
     
     // Riferimento al brano attualmente in riproduzione
@@ -28,6 +27,9 @@ class AudioManager {
     
     // Inizializza l'audio
     this._initAudio();
+    
+    // Rendi l'istanza accessibile globalmente
+    window.audioManager = this;
   }
   
   // Inizializza l'audio con gestione delle interazioni utente

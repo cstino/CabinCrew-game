@@ -1207,3 +1207,87 @@ input::placeholder {
 ::placeholder {
   color: rgba(255, 255, 255, 0.6);
 }
+/* CSS per il pulsante mute - aggiungi a main.css */
+.mute-button {
+  background: rgba(36, 40, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 8px;
+  padding: 0;
+  font-size: 20px;
+  position: relative;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.mute-button:hover {
+  background: rgba(54, 226, 236, 0.1);
+  border-color: var(--secondary-color);
+  transform: translateY(-2px);
+}
+
+.mute-button.muted #mute-icon {
+  opacity: 0.5;
+}
+
+.mute-button.muted #mute-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 24px;
+  background-color: var(--danger-color);
+  transform: translate(-50%, -50%) rotate(45deg);
+  box-shadow: 0 0 5px rgba(239, 71, 111, 0.5);
+}/* CSS per il controllo utente e pulsante mute */
+.user-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mute-button {
+  background: rgba(36, 40, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  font-size: 20px;
+  position: relative;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.mute-button:hover {
+  background: rgba(54, 226, 236, 0.1);
+  border-color: var(--secondary-color);
+  transform: translateY(-2px);
+}
+
+.mute-button.muted #mute-icon {
+  opacity: 0.5;
+}
+
+.mute-button.muted #mute-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 24px;
+  background-color: var(--danger-color);
+  transform: translate(-50%, -50%) rotate(45deg);
+  box-shadow: 0 0 5px rgba(239, 71, 111, 0.5);
+}

@@ -43,11 +43,16 @@
       <div class="container">
         <div class="lobby-header">
           <h1>CabinCrew Lobby</h1>
-          <div id="user-profile-card" class="user-profile-card">
-            <div class="user-avatar">
-              <span id="user-badge-display">🏆</span>
+          <div class="user-controls">
+            <button id="mute-button" class="mute-button">
+              <span id="mute-icon">🔊</span>
+            </button>
+            <div id="user-profile-card" class="user-profile-card">
+              <div class="user-avatar">
+                <span id="user-badge-display">🏆</span>
+              </div>
+              <div id="username-display">Username</div>
             </div>
-            <div id="username-display">Username</div>
           </div>
         </div>
 
@@ -687,5 +692,71 @@
       });
     });
   </script>
+ <script>
+  // Script corretto per gestire il pulsante mute
+  document.addEventListener('DOMContentLoaded', function() {
+    // Rimuovi pannello test
+    const testPanels = document.querySelectorAll('div[style*="position: fixed"][style*="bottom: 20px"][style*="right: 20px"]');
+    testPanels.forEach(panel => panel.remove());
+    
+    // Gestione audio
+    let audioContext;
+    let audioElements = [];
+    let isMuted = false;
+    
+    function toggleMute() {
+      isMuted = !isMuted;
+      
+      // Trova tutti gli elementi audio
+      audioElements = document.querySelectorAll('audio');
+      
+      // Applica mute/unmute
+      audioElements.forEach(audio => {
+        audio.muted = isMuted;
+      });
+      
+      // Aggiorna UI
+      const muteButton = document.getElementById('mute-button');
+      if (muteButton) {
+        if (isMuted) {
+          muteButton.classList.add('muted');
+        } else {
+          muteButton.classList.remove('muted');
+        }
+      }
+      
+      console.log('Audio ' + (isMuted ? 'disattivato' : 'attivato'));
+      return isMuted;
+    }
+    
+    // Collega evento click
+    const muteButton = document.getElementById('mute-button');
+    if (muteButton) {
+      muteButton.addEventListener('click', function() {
+        toggleMute();
+        
+        // Prova anche ad accedere all'AudioManager
+        try {
+          const audioManagerScript = document.createElement('script');
+          audioManagerScript.textContent = `
+            if (typeof audioManager !== 'undefined') {
+              audioManager.isMuted = ${isMuted};
+              if (${isMuted}) {
+                audioManager.stopMenuMusic();
+                audioManager.stopGameMusic();
+              } else {
+                audioManager.playMenuMusic();
+              }
+            }
+          `;
+          document.head.appendChild(audioManagerScript);
+          document.head.removeChild(audioManagerScript);
+        } catch (err) {
+          console.error('Errore accesso AudioManager:', err);
+        }
+      });
+    }
+  });
+</script>
 </body>
 </html>
