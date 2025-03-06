@@ -88,6 +88,14 @@
               <div class="bonus-icon">🔄</div>
               <div class="bonus-label">Resurrection</div>
             </div>
+            <div class="bonus-item" id="double-multiplier-bonus">
+              <div class="bonus-icon">✖️2</div>
+              <div class="bonus-label">x2 Boost</div>
+            </div>
+            <div class="bonus-item" id="shield-bonus">
+              <div class="bonus-icon">🛡️</div>
+              <div class="bonus-label">Shield</div>
+            </div>
           </div>
         </div>
         
@@ -105,6 +113,13 @@
           <h2>Round Results</h2>
           <div id="crash-point"></div>
           <div id="results-list"></div>
+          <div id="bonus-award" class="hidden">
+            <h3>Bonus Award</h3>
+            <div class="bonus-award-info">
+              <span id="bonus-icon"></span>
+              <span id="bonus-name"></span>
+            </div>
+          </div>
         </div>
         
         <div class="room-footer">
@@ -155,6 +170,8 @@
     </div>
   </div>
   
+  <script type="module" src="src/client/js/AudioManager.js"></script>
+  <script type="module" src="src/client/js/BonusSystem.js"></script>
   <script src="dist/bundle.js"></script>
 </body>
 </html>
