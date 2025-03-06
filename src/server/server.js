@@ -1,161 +1,113 @@
-// server.js
+// server.js - aggiorna/sostituisci questo file
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
 const path = require('path');
-const RoomManager = require('./roomManager');
-const GameManager = require('./gameManager');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
-// Serve static files
+// Servi i file statici dalla cartella 'public'
 app.use(express.static(path.join(__dirname, '../../public')));
 
-// Initialize managers
-const roomManager = new RoomManager();
-const gameManager = new GameManager(io, roomManager);
+// Memorizza le stanze di gioco
+const rooms = {};
 
-// Socket connection handling
+// Socket.IO per la gestione del gioco in tempo reale
 io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
-
-  // User registration and authentication
-  socket.on('register', (userData) => {
-    // Firebase auth would be implemented here
-    // For prototype, just acknowledge
-    socket.emit('registered', {
-      success: true,
-      userId: socket.id,
-      username: userData.username,
-    });
-  });
-
-  // Room creation
-  socket.on('createRoom', (roomData) => {
-    const { roomName, roomCode, initialCredits, roundCount, enableBonuses } =
-      roomData;
-    const room = roomManager.createRoom(
-      roomName,
-      roomCode,
-      initialCredits,
-      roundCount,
-      enableBonuses
-    );
-
-    if (room) {
-      socket.join(roomCode);
-      socket.roomCode = roomCode;
-      socket.isLeader = true;
-
-      roomManager.addPlayerToRoom(
-        roomCode,
-        socket.id,
-        roomData.userData.username,
-        initialCredits
-      );
-      socket.emit('roomCreated', room);
-      io.to(roomCode).emit(
-        'playerJoined',
-        roomManager.getRoomPlayers(roomCode)
-      );
-    } else {
-      socket.emit('error', {
-        message: 'Failed to create room. Room code might be in use.',
-      });
+  console.log('Nuovo utente connesso:', socket.id);
+  
+  // Crea stanza
+  socket.on('createRoom', (data) => {
+    const roomCode = data.code;
+    
+    // Verifica se la stanza esiste già
+    if (rooms[roomCode]) {
+      socket.emit('roomError', { message: 'Codice stanza già in uso' });
+      return;
     }
+    
+    // Crea la stanza
+    rooms[roomCode] = {
+      name: data.name,
+      code: roomCode,
+      initialCredits: data.initialCredits,
+      roundCount: data.roundCount,
+      enableBonuses: false, // Bonus disabilitati
+      players: [{ id: socket.id }],
+      leader: socket.id
+    };
+    
+    // Unisci il socket alla stanza
+    socket.join(roomCode);
+    
+    // Notifica il client
+    socket.emit('roomCreated', rooms[roomCode]);
+    console.log('Stanza creata:', roomCode);
   });
-
-  // Joining a room
+  
+  // Unisciti a stanza
   socket.on('joinRoom', (data) => {
-    const { roomCode, username } = data;
-    const room = roomManager.getRoom(roomCode);
-
-    if (room) {
-      socket.join(roomCode);
-      socket.roomCode = roomCode;
-      socket.isLeader = false;
-
-      roomManager.addPlayerToRoom(
-        roomCode,
-        socket.id,
-        username,
-        room.initialCredits
-      );
-      socket.emit('roomJoined', room);
-      io.to(roomCode).emit(
-        'playerJoined',
-        roomManager.getRoomPlayers(roomCode)
-      );
-    } else {
-      socket.emit('error', { message: 'Room not found.' });
+    const roomCode = data.code;
+    
+    // Verifica se la stanza esiste
+    if (!rooms[roomCode]) {
+      socket.emit('roomError', { message: 'Stanza non trovata' });
+      return;
     }
+    
+    // Unisci il socket alla stanza
+    socket.join(roomCode);
+    
+    // Aggiungi il giocatore alla stanza
+    rooms[roomCode].players.push({ id: socket.id });
+    
+    // Notifica il client
+    socket.emit('roomJoined', rooms[roomCode]);
+    
+    // Notifica gli altri giocatori
+    socket.to(roomCode).emit('playerJoined', { id: socket.id });
+    console.log('Giocatore unito alla stanza:', roomCode);
   });
-
-  // Player ready for next round
-  socket.on('playerReady', () => {
-    if (socket.roomCode) {
-      roomManager.setPlayerReady(socket.roomCode, socket.id);
-      io.to(socket.roomCode).emit(
-        'playerReadyUpdate',
-        roomManager.getRoomPlayers(socket.roomCode)
-      );
-
-      // Check if all players are ready to start the round
-      if (roomManager.areAllPlayersReady(socket.roomCode)) {
-        gameManager.startRound(socket.roomCode);
-      }
-    }
-  });
-
-  // Player eject action
-  socket.on('eject', () => {
-    if (socket.roomCode) {
-      const currentMultiplier = gameManager.getCurrentMultiplier(
-        socket.roomCode
-      );
-      gameManager.playerEject(socket.roomCode, socket.id, currentMultiplier);
-
-      // Notify the room about player ejection
-      io.to(socket.roomCode).emit('playerEjected', {
-        playerId: socket.id,
-        multiplier: currentMultiplier,
-      });
-    }
-  });
-
-  // Chat functionality
-  socket.on('sendChatMessage', (data) => {
-    if (socket.roomCode) {
-      // Broadcast message to all users in the room
-      io.to(socket.roomCode).emit('chatMessage', {
-        username: data.username,
-        message: data.message,
-      });
-    }
-  });
-
-  // Disconnect handling
+  
+  // Disconnessione
   socket.on('disconnect', () => {
-    console.log(`User disconnected: ${socket.id}`);
-
-    if (socket.roomCode) {
-      roomManager.removePlayerFromRoom(socket.roomCode, socket.id);
-      io.to(socket.roomCode).emit('playerLeft', {
-        playerId: socket.id,
-        players: roomManager.getRoomPlayers(socket.roomCode),
-      });
-
-      // If room is empty, remove it
-      if (roomManager.isRoomEmpty(socket.roomCode)) {
-        roomManager.removeRoom(socket.roomCode);
+    console.log('Utente disconnesso:', socket.id);
+    
+    // Rimuovi giocatore dalle stanze
+    for (const roomCode in rooms) {
+      const room = rooms[roomCode];
+      
+      // Cerca il giocatore nella stanza
+      const playerIndex = room.players.findIndex(player => player.id === socket.id);
+      
+      if (playerIndex !== -1) {
+        // Rimuovi il giocatore
+        room.players.splice(playerIndex, 1);
+        
+        // Notifica gli altri giocatori
+        socket.to(roomCode).emit('playerLeft', { id: socket.id });
+        
+        // Se non ci sono più giocatori, rimuovi la stanza
+        if (room.players.length === 0) {
+          delete rooms[roomCode];
+          console.log('Stanza rimossa:', roomCode);
+        }
+        // Se il leader è uscito, assegna un nuovo leader
+        else if (room.leader === socket.id && room.players.length > 0) {
+          room.leader = room.players[0].id;
+          socket.to(roomCode).emit('newLeader', { id: room.leader });
+        }
       }
     }
   });
 });
 
+// Avvia il server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server attivo su http://localhost:${PORT}`);
 });
+
+module.exports = server;

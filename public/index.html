@@ -78,11 +78,6 @@
               <input type="number" id="round-count" placeholder="Number of Rounds" value="5" min="1" max="20">
               <div class="tooltip">Total number of game rounds before determining the winner</div>
             </div>
-            <div class="checkbox">
-              <input type="checkbox" id="enable-bonuses" checked>
-              <label for="enable-bonuses">Enable Bonuses</label>
-              <div class="tooltip">Special powers that can be earned during gameplay</div>
-            </div>
             <button id="create-room-button">Create Room</button>
           </div>
           <div class="option-box">
@@ -182,22 +177,6 @@
             <button id="ready-button" class="action-button">Ready</button>
             <button id="eject-button" class="action-button primary">EJECT</button>
           </div>
-          
-          <div class="bonus-indicators">
-            <div class="bonus-item" id="resurrection-bonus">
-              <div class="bonus-icon">🔄</div>
-              <div class="bonus-label">Resurrection</div>
-            </div>
-            <div class="bonus-item" id="double-multiplier-bonus">
-              <div class="bonus-icon">✖️2</div>
-              <div class="bonus-label">x2 Boost</div>
-            </div>
-            <div class="bonus-item" id="shield-bonus">
-              <div class="bonus-icon">🛡️</div>
-              <div class="bonus-label">Shield</div>
-            </div>
-          </div>
-        </div>
         
         <div class="game-status">
           <div id="status-message">Waiting for players to join...</div>
@@ -213,13 +192,6 @@
           <h2>Round Results</h2>
           <div id="crash-point"></div>
           <div id="results-list"></div>
-          <div id="bonus-award" class="hidden">
-            <h3>Bonus Award</h3>
-            <div class="bonus-award-info">
-              <span id="bonus-icon"></span>
-              <span id="bonus-name"></span>
-            </div>
-          </div>
         </div>
         
         <div class="room-footer">
@@ -244,6 +216,30 @@
         <div class="profile-info">
           <div class="profile-header">
             <div id="profile-username">Username</div>
+            <!-- Nel profile-tab, dopo il div profile-username -->
+<div class="profile-header">
+  <div class="username-container">
+    <div id="profile-username">Username</div>
+    <button id="edit-username-button" class="edit-button">
+      <span>✏️</span>
+    </button>
+  </div>
+  <div id="selected-badge">No Badge</div>
+</div>
+
+<!-- Aggiungi questo modal/dialog alla fine della sezione profile-screen -->
+<div id="edit-username-modal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Modifica Username</h3>
+      <button class="close-modal">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" id="new-username" placeholder="Nuovo username">
+      <button id="save-username-button" class="primary-button">Salva</button>
+    </div>
+  </div>
+</div>
             <div id="selected-badge">No Badge</div>
           </div>
           <div class="stats-container">
@@ -274,355 +270,456 @@
   <script type="module" src="src/client/js/BonusSystem.js"></script>
   <script src="dist/bundle.js"></script>
 
-  <!-- Firebase Authentication -->
-  <script type="module">
-    // Importa Firebase
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js';
-    import { 
-      getAuth, 
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword,
-      sendEmailVerification
-    } from 'https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js';
+ <!-- Firebase Authentication -->
+<script type="module">
+  // Importa Firebase
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js';
+  import { 
+    getAuth, 
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    sendEmailVerification
+  } from 'https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js';
 
-    // Config Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyCp5Rt67nkZ_DECiyyim3QuBC-Zgq6y1Dw",
-      authDomain: "cabincrew-game.firebaseapp.com",
-      projectId: "cabincrew-game",
-      storageBucket: "cabincrew-game.firebasestorage.app",
-      messagingSenderId: "525011831374",
-      appId: "1:525011831374:web:ace85fdd1963f62485911f",
-      measurementId: "G-6YSD9F2ZHQ"
+  // Config Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyCp5Rt67nkZ_DECiyyim3QuBC-Zgq6y1Dw",
+    authDomain: "cabincrew-game.firebaseapp.com",
+    projectId: "cabincrew-game",
+    storageBucket: "cabincrew-game.firebasestorage.app",
+    messagingSenderId: "525011831374",
+    appId: "1:525011831374:web:ace85fdd1963f62485911f",
+    measurementId: "G-6YSD9F2ZHQ"
+  };
+
+  // Inizializza Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Elementi UI
+    const loginTab = document.getElementById('login-tab');
+    const registerTab = document.getElementById('register-tab');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const switchToRegister = document.getElementById('switch-to-register');
+    const switchToLogin = document.getElementById('switch-to-login');
+    const loginButton = document.getElementById('login-button');
+    const registerButton = document.getElementById('register-button');
+
+    console.log('Firebase Auth script caricato');
+
+    // Funzioni per cambiare form
+    function showLoginForm() {
+      loginTab.classList.add('active');
+      registerTab.classList.remove('active');
+      loginForm.classList.remove('hidden');
+      registerForm.classList.add('hidden');
+      console.log('Login form attivato');
+    }
+
+    function showRegisterForm() {
+      registerTab.classList.add('active');
+      loginTab.classList.remove('active');
+      registerForm.classList.remove('hidden');
+      loginForm.classList.add('hidden');
+      console.log('Registration form attivato');
+    }
+
+    // Gestisce la registrazione
+    async function handleRegister() {
+      const username = document.getElementById('register-username').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      const confirmPassword = document.getElementById('register-confirm-password').value;
+
+      console.log('Tentativo di registrazione per:', email);
+
+      // Validazione
+      if (!username || !email || !password || !confirmPassword) {
+        alert('Compila tutti i campi richiesti');
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        alert('Le password non corrispondono');
+        return;
+      }
+
+      try {
+        console.log('Creazione utente in Firebase...');
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        // Salva l'username in localStorage persistente
+        localStorage.setItem('username_' + user.uid, username);
+        console.log('Username salvato:', username, 'per utente', user.uid);
+        
+        // Invia email di verifica
+        console.log('Invio email di verifica...');
+        await sendEmailVerification(user);
+        
+        alert('Registrazione completata! Ti abbiamo inviato un\'email di conferma.');
+        showLoginForm();
+      } catch (error) {
+        console.error('Errore di registrazione:', error);
+        alert('Errore di registrazione: ' + error.message);
+      }
+    }
+
+    // Gestisce il login
+    async function handleLogin() {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      console.log('Tentativo di login per:', email);
+
+      if (!email || !password) {
+        alert('Compila tutti i campi richiesti');
+        return;
+      }
+
+      try {
+        console.log('Login in corso...');
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        if (!user.emailVerified) {
+          alert('Per favore verifica la tua email prima di accedere.');
+          return;
+        }
+        
+        // Recupera username dal localStorage o usa l'email come fallback
+        const savedUsername = localStorage.getItem('username_' + user.uid) || email.split('@')[0];
+        
+        // Salva i dati utente nella sessione
+        sessionStorage.setItem('user', JSON.stringify({
+          id: user.uid,
+          username: savedUsername,
+          email: user.email
+        }));
+        
+        // Reindirizza alla lobby
+        document.getElementById('auth-screen').classList.add('hidden');
+        document.getElementById('lobby-screen').classList.remove('hidden');
+        
+        // Aggiorna immediatamente l'UI
+        if (typeof updateUserProfile === 'function') {
+          updateUserProfile();
+        }
+      } catch (error) {
+        console.error('Errore di login:', error);
+        alert('Errore di login: ' + error.message);
+      }
+    }
+
+    // Collegamenti event listener
+    loginTab.onclick = showLoginForm;
+    registerTab.onclick = showRegisterForm;
+    
+    switchToRegister.onclick = function(e) {
+      e.preventDefault();
+      showRegisterForm();
+    };
+    
+    switchToLogin.onclick = function(e) {
+      e.preventDefault();
+      showLoginForm();
     };
 
-    // Inizializza Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    // Collega i bottoni auth
+    loginButton.addEventListener('click', handleLogin);
+    registerButton.addEventListener('click', handleRegister);
 
-    document.addEventListener('DOMContentLoaded', function() {
-      // Elementi UI
-      const loginTab = document.getElementById('login-tab');
-      const registerTab = document.getElementById('register-tab');
-      const loginForm = document.getElementById('login-form');
-      const registerForm = document.getElementById('register-form');
-      const switchToRegister = document.getElementById('switch-to-register');
-      const switchToLogin = document.getElementById('switch-to-login');
-      const loginButton = document.getElementById('login-button');
-      const registerButton = document.getElementById('register-button');
-
-      console.log('Firebase Auth script caricato');
-
-      // Funzioni per cambiare form
-      function showLoginForm() {
-        loginTab.classList.add('active');
-        registerTab.classList.remove('active');
-        loginForm.classList.remove('hidden');
-        registerForm.classList.add('hidden');
-        console.log('Login form attivato');
-      }
-
-      function showRegisterForm() {
-        registerTab.classList.add('active');
-        loginTab.classList.remove('active');
-        registerForm.classList.remove('hidden');
-        loginForm.classList.add('hidden');
-        console.log('Registration form attivato');
-      }
-
-      // Gestisce la registrazione
-      async function handleRegister() {
-        const username = document.getElementById('register-username').value;
-        const email = document.getElementById('register-email').value;
-        const password = document.getElementById('register-password').value;
-        const confirmPassword = document.getElementById('register-confirm-password').value;
-
-        console.log('Tentativo di registrazione per:', email);
-
-        // Validazione
-        if (!username || !email || !password || !confirmPassword) {
-          alert('Compila tutti i campi richiesti');
-          return;
-        }
-
-        if (password !== confirmPassword) {
-          alert('Le password non corrispondono');
-          return;
-        }
-
-        try {
-          console.log('Creazione utente in Firebase...');
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          const user = userCredential.user;
-          
-          // Invia email di verifica
-          console.log('Invio email di verifica...');
-          await sendEmailVerification(user);
-          
-          alert('Registrazione completata! Ti abbiamo inviato un\'email di conferma.');
-          showLoginForm();
-        } catch (error) {
-          console.error('Errore di registrazione:', error);
-          alert('Errore di registrazione: ' + error.message);
-        }
-      }
-
-      // Gestisce il login
-      async function handleLogin() {
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
-
-        console.log('Tentativo di login per:', email);
-
-        if (!email || !password) {
-          alert('Compila tutti i campi richiesti');
-          return;
-        }
-
-        try {
-          console.log('Login in corso...');
-          const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          const user = userCredential.user;
-          
-          if (!user.emailVerified) {
-            alert('Per favore verifica la tua email prima di accedere.');
-            return;
-          }
-          
-          // Salva i dati utente nella sessione
-          sessionStorage.setItem('user', JSON.stringify({
-            id: user.uid,
-            username: user.displayName || email.split('@')[0],
-            email: user.email
-          }));
-          
-          // Reindirizza alla lobby
-          document.getElementById('auth-screen').classList.add('hidden');
-          document.getElementById('lobby-screen').classList.remove('hidden');
-        } catch (error) {
-          console.error('Errore di login:', error);
-          alert('Errore di login: ' + error.message);
-        }
-      }
-
-      // Collegamenti event listener
-      loginTab.onclick = showLoginForm;
-      registerTab.onclick = showRegisterForm;
-      
-      switchToRegister.onclick = function(e) {
-        e.preventDefault();
-        showRegisterForm();
-      };
-      
-      switchToLogin.onclick = function(e) {
-        e.preventDefault();
-        showLoginForm();
-      };
-
-      // Collega i bottoni auth
-      loginButton.addEventListener('click', handleLogin);
-      registerButton.addEventListener('click', handleRegister);
-
-      console.log('Event handlers di autenticazione collegati');
-    });
+    console.log('Event handlers di autenticazione collegati');
+  });
   </script>
 
   <!-- Lobby JavaScript -->
-  <script>
-    // JavaScript per gestire la nuova interfaccia lobby
-    document.addEventListener('DOMContentLoaded', function() {
-      // Gestione navigazione e azioni
-      initLobbyEvents();
-      updateUserProfile();
-    });
-
-    function initLobbyEvents() {
-      // Profilo utente in alto a destra
-      const userProfileCard = document.getElementById('user-profile-card');
-      const profileOverlay = document.getElementById('profile-overlay');
-      const closeOverlayButtons = document.querySelectorAll('.close-overlay');
-      
-      // Mostra overlay profilo/amici
-      if (userProfileCard) {
-        userProfileCard.addEventListener('click', function() {
-          if (profileOverlay) profileOverlay.classList.remove('hidden');
-        });
-      }
-      
-      // Chiudi overlay
-      closeOverlayButtons.forEach(button => {
-        button.addEventListener('click', function() {
-          const overlay = this.closest('.overlay');
-          if (overlay) overlay.classList.add('hidden');
-        });
-      });
-      
-      // Tab di navigazione nel profilo
-      const tabButtons = document.querySelectorAll('.tab-button');
-      tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-          // Rimuovi classe active da tutti i tab
-          tabButtons.forEach(btn => btn.classList.remove('active'));
-          // Aggiungi classe active al tab cliccato
-          this.classList.add('active');
-          
-          // Nascondi tutti i contenuti tab
-          const tabContents = document.querySelectorAll('.tab-content');
-          tabContents.forEach(content => content.classList.add('hidden'));
-          
-          // Mostra il contenuto del tab selezionato
-          const tabId = this.getAttribute('data-tab');
-          const activeContent = document.getElementById(tabId);
-          if (activeContent) activeContent.classList.remove('hidden');
-        });
-      });
-      
-      // Gestione pulsanti della lobby
-      const createRoomButton = document.getElementById('create-room-button');
-      const joinRoomButton = document.getElementById('join-room-button');
-      const addFriendButton = document.getElementById('add-friend-button');
-      
-      if (createRoomButton) {
-        createRoomButton.addEventListener('click', function() {
-          handleCreateRoom();
-        });
-      }
-      
-      if (joinRoomButton) {
-        joinRoomButton.addEventListener('click', function() {
-          handleJoinRoom();
-        });
-      }
-      
-      if (addFriendButton) {
-        addFriendButton.addEventListener('click', function() {
-          handleAddFriend();
-        });
-      }
-      
-      // Gestione eventi escape per chiudere gli overlay
-      document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-          const overlays = document.querySelectorAll('.overlay:not(.hidden)');
-          overlays.forEach(overlay => overlay.classList.add('hidden'));
-        }
+<script>
+  // JavaScript per gestire la nuova interfaccia lobby
+  document.addEventListener('DOMContentLoaded', function() {
+    // Gestione navigazione e azioni
+    initLobbyEvents();
+    updateUserProfile();
+    initUsernameEdit(); // Inizializza la funzionalità di modifica username
+  });
+ 
+  function initLobbyEvents() {
+    // Profilo utente in alto a destra
+    const userProfileCard = document.getElementById('user-profile-card');
+    const profileOverlay = document.getElementById('profile-overlay');
+    const closeOverlayButtons = document.querySelectorAll('.close-overlay');
+    
+    // Mostra overlay profilo/amici
+    if (userProfileCard) {
+      userProfileCard.addEventListener('click', function() {
+        if (profileOverlay) profileOverlay.classList.remove('hidden');
       });
     }
-
-    // Aggiorna le informazioni del profilo utente dall'autenticazione
-    function updateUserProfile() {
+    
+    // Chiudi overlay
+    closeOverlayButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const overlay = this.closest('.overlay');
+        if (overlay) overlay.classList.add('hidden');
+      });
+    });
+    
+    // Tab di navigazione nel profilo
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        // Rimuovi classe active da tutti i tab
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        // Aggiungi classe active al tab cliccato
+        this.classList.add('active');
+        
+        // Nascondi tutti i contenuti tab
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabContents.forEach(content => content.classList.add('hidden'));
+        
+        // Mostra il contenuto del tab selezionato
+        const tabId = this.getAttribute('data-tab');
+        const activeContent = document.getElementById(tabId);
+        if (activeContent) activeContent.classList.remove('hidden');
+      });
+    });
+    
+    // Gestione pulsanti della lobby
+    const createRoomButton = document.getElementById('create-room-button');
+    const joinRoomButton = document.getElementById('join-room-button');
+    const addFriendButton = document.getElementById('add-friend-button');
+    
+    if (createRoomButton) {
+      createRoomButton.addEventListener('click', function() {
+        handleCreateRoom();
+      });
+    }
+    
+    if (joinRoomButton) {
+      joinRoomButton.addEventListener('click', function() {
+        handleJoinRoom();
+      });
+    }
+    
+    if (addFriendButton) {
+      addFriendButton.addEventListener('click', function() {
+        handleAddFriend();
+      });
+    }
+    
+    // Gestione eventi escape per chiudere gli overlay
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const overlays = document.querySelectorAll('.overlay:not(.hidden)');
+        overlays.forEach(overlay => overlay.classList.add('hidden'));
+      }
+    });
+  }
+ 
+  // Aggiorna le informazioni del profilo utente dall'autenticazione
+  function updateUserProfile() {
+    const user = getLoggedInUser();
+    console.log('Dati utente:', user);
+    
+    if (!user) return;
+    
+    // Aggiorna il display del nome utente
+    const usernameDisplay = document.getElementById('username-display');
+    const profileUsername = document.getElementById('profile-username');
+    
+    if (usernameDisplay) usernameDisplay.textContent = user.username;
+    if (profileUsername) profileUsername.textContent = user.username;
+  }
+ 
+  // Ottieni l'utente attualmente loggato
+  function getLoggedInUser() {
+    const userData = sessionStorage.getItem('user');
+    return userData ? JSON.parse(userData) : null;
+  }
+ 
+  // Gestione creazione stanza
+  function handleCreateRoom() {
+    const roomName = document.getElementById('room-name').value;
+    const roomCode = document.getElementById('room-code').value;
+    const initialCredits = document.getElementById('initial-credits').value;
+    const roundCount = document.getElementById('round-count').value;
+    
+    // Validazione
+    if (!roomName || !roomCode) {
+      alert('Per favore inserisci il nome e il codice della stanza');
+      return;
+    }
+    
+    // Socket.IO deve essere connesso all'inizio dello script
+    const socket = io();
+    
+    // Emetti evento per creare la stanza
+    socket.emit('createRoom', {
+      name: roomName,
+      code: roomCode,
+      initialCredits,
+      roundCount
+    });
+    
+    // Ascolta la risposta del server
+    socket.on('roomCreated', (room) => {
+      console.log('Stanza creata:', room);
+      
+      // Passa alla schermata di gioco
+      document.getElementById('lobby-screen').classList.add('hidden');
+      document.getElementById('game-room-screen').classList.remove('hidden');
+      
+      // Aggiorna UI
+      document.getElementById('room-title').textContent = room.name;
+      document.getElementById('room-code-display').textContent = 'Code: ' + room.code;
+      document.getElementById('round-info').textContent = 'Round 0/' + room.roundCount;
+      document.getElementById('credit-amount').textContent = room.initialCredits;
+    });
+    
+    socket.on('roomError', (error) => {
+      alert(error.message);
+    });
+  }
+ 
+  // Gestione partecipazione stanza
+  function handleJoinRoom() {
+    const roomCode = document.getElementById('join-room-code').value;
+    
+    if (!roomCode) {
+      alert('Per favore inserisci il codice della stanza');
+      return;
+    }
+    
+    // Socket.IO deve essere connesso all'inizio dello script
+    const socket = io();
+    
+    // Emetti evento per unirsi alla stanza
+    socket.emit('joinRoom', { code: roomCode });
+    
+    // Ascolta la risposta del server
+    socket.on('roomJoined', (room) => {
+      console.log('Unito alla stanza:', room);
+      
+      // Passa alla schermata di gioco
+      document.getElementById('lobby-screen').classList.add('hidden');
+      document.getElementById('game-room-screen').classList.remove('hidden');
+      
+      // Aggiorna UI
+      document.getElementById('room-title').textContent = room.name;
+      document.getElementById('room-code-display').textContent = 'Code: ' + room.code;
+      document.getElementById('round-info').textContent = 'Round 0/' + room.roundCount;
+      document.getElementById('credit-amount').textContent = room.initialCredits;
+    });
+    
+    socket.on('roomError', (error) => {
+      alert(error.message);
+    });
+  }
+ 
+  // Gestione aggiunta amici
+  function handleAddFriend() {
+    const friendUsername = document.getElementById('friend-search').value;
+    
+    if (!friendUsername) {
+      alert('Per favore inserisci un nome utente da cercare');
+      return;
+    }
+    
+    // Simula la ricerca di un amico
+    console.log('Ricerca utente:', friendUsername);
+    
+    // Simulazione di un'aggiunta amico riuscita
+    alert('Richiesta di amicizia inviata a ' + friendUsername);
+    document.getElementById('friend-search').value = '';
+    
+    // Aggiorna la lista amici (simulazione)
+    const friendsContainer = document.getElementById('friends-container');
+    const noFriendsMessage = document.querySelector('.no-friends-message');
+    
+    if (noFriendsMessage) {
+      noFriendsMessage.remove();
+    }
+    
+    const friendElement = document.createElement('div');
+    friendElement.className = 'friend-item';
+    friendElement.innerHTML = `
+      <div class="friend-info">
+        <div class="friend-avatar">👤</div>
+        <div class="friend-username">${friendUsername}</div>
+      </div>
+      <div class="friend-actions">
+        <button class="friend-action-btn">Message</button>
+      </div>
+    `;
+    
+    if (friendsContainer) {
+      friendsContainer.appendChild(friendElement);
+    }
+  }
+  
+  // Funzionalità per la modifica dello username
+  function initUsernameEdit() {
+    const editButton = document.getElementById('edit-username-button');
+    const modal = document.getElementById('edit-username-modal');
+    
+    if (!editButton || !modal) return;
+    
+    const closeButton = modal.querySelector('.close-modal');
+    const saveButton = document.getElementById('save-username-button');
+    
+    // Apri modal
+    editButton.addEventListener('click', function() {
+      const currentUsername = document.getElementById('profile-username').textContent;
+      document.getElementById('new-username').value = currentUsername;
+      modal.classList.remove('hidden');
+    });
+    
+    // Chiudi modal
+    closeButton.addEventListener('click', function() {
+      modal.classList.add('hidden');
+    });
+    
+    // Salva nuovo username
+    saveButton.addEventListener('click', function() {
+      const newUsername = document.getElementById('new-username').value.trim();
+      
+      if (!newUsername) {
+        alert('Inserisci un username valido');
+        return;
+      }
+      
+      // Ottieni utente corrente
       const user = getLoggedInUser();
       if (!user) return;
       
-      // Aggiorna il display del nome utente
-      const usernameDisplay = document.getElementById('username-display');
-      const profileUsername = document.getElementById('profile-username');
+      // Aggiorna localStorage e sessionStorage
+      localStorage.setItem('username_' + user.id, newUsername);
       
-      if (usernameDisplay) usernameDisplay.textContent = user.username;
-      if (profileUsername) profileUsername.textContent = user.username;
-    }
-
-    // Ottieni l'utente attualmente loggato
-    function getLoggedInUser() {
-      const userData = sessionStorage.getItem('user');
-      return userData ? JSON.parse(userData) : null;
-    }
-
-    // Gestione creazione stanza
-    function handleCreateRoom() {
-      const roomName = document.getElementById('room-name').value;
-      const roomCode = document.getElementById('room-code').value;
-      const initialCredits = document.getElementById('initial-credits').value;
-      const roundCount = document.getElementById('round-count').value;
-      const enableBonuses = document.getElementById('enable-bonuses').checked;
+      const updatedUser = {
+        ...user,
+        username: newUsername
+      };
       
-      // Validazione
-      if (!roomName || !roomCode) {
-        alert('Per favore inserisci il nome e il codice della stanza');
-        return;
+      sessionStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Aggiorna UI
+      document.getElementById('profile-username').textContent = newUsername;
+      document.getElementById('username-display').textContent = newUsername;
+      
+      // Chiudi modal
+      modal.classList.add('hidden');
+    });
+    
+    // Chiudi con Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+        modal.classList.add('hidden');
       }
-      
-      // Invia i dati al server (simulato per ora)
-      console.log('Creazione stanza:', {
-        name: roomName,
-        code: roomCode,
-        initialCredits,
-        roundCount,
-        enableBonuses
-      });
-      
-      // Passa alla schermata di gioco (simulazione)
-      document.getElementById('lobby-screen').classList.add('hidden');
-      document.getElementById('game-room-screen').classList.remove('hidden');
-      
-      // Aggiorna l'interfaccia di gioco
-      document.getElementById('room-title').textContent = roomName;
-      document.getElementById('room-code-display').textContent = 'Code: ' + roomCode;
-      document.getElementById('round-info').textContent = 'Round 0/' + roundCount;
-    }
-
-    // Gestione partecipazione stanza
-    function handleJoinRoom() {
-      const roomCode = document.getElementById('join-room-code').value;
-      
-      if (!roomCode) {
-        alert('Per favore inserisci il codice della stanza');
-        return;
-      }
-      
-      // Simula la richiesta al server
-      console.log('Partecipazione alla stanza con codice:', roomCode);
-      
-      // Simulazione - In un'app reale, dovresti verificare se la stanza esiste
-      document.getElementById('lobby-screen').classList.add('hidden');
-      document.getElementById('game-room-screen').classList.remove('hidden');
-      
-      // Aggiorna l'interfaccia con dati simulati
-      document.getElementById('room-title').textContent = 'Stanza #' + roomCode;
-      document.getElementById('room-code-display').textContent = 'Code: ' + roomCode;
-    }
-
-    // Gestione aggiunta amici
-    function handleAddFriend() {
-      const friendUsername = document.getElementById('friend-search').value;
-      
-      if (!friendUsername) {
-        alert('Per favore inserisci un nome utente da cercare');
-        return;
-      }
-      
-      // Simula la ricerca di un amico
-      console.log('Ricerca utente:', friendUsername);
-      
-      // Simulazione di un'aggiunta amico riuscita
-      alert('Richiesta di amicizia inviata a ' + friendUsername);
-      document.getElementById('friend-search').value = '';
-      
-      // Aggiorna la lista amici (simulazione)
-      const friendsContainer = document.getElementById('friends-container');
-      const noFriendsMessage = document.querySelector('.no-friends-message');
-      
-      if (noFriendsMessage) {
-        noFriendsMessage.remove();
-      }
-      
-      const friendElement = document.createElement('div');
-      friendElement.className = 'friend-item';
-      friendElement.innerHTML = `
-        <div class="friend-info">
-          <div class="friend-avatar">👤</div>
-          <div class="friend-username">${friendUsername}</div>
-        </div>
-        <div class="friend-actions">
-          <button class="friend-action-btn">Message</button>
-        </div>
-      `;
-      
-      if (friendsContainer) {
-        friendsContainer.appendChild(friendElement);
-      }
-    }
-  </script>
+    });
+  }
+ </script>
   <script>
     // Test audio da aggiungere a index.html
     document.addEventListener('DOMContentLoaded', function() {
