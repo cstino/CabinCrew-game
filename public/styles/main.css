@@ -1291,3 +1291,41 @@ input::placeholder {
   transform: translate(-50%, -50%) rotate(45deg);
   box-shadow: 0 0 5px rgba(239, 71, 111, 0.5);
 }
+/* CSS per il logo */
+.logo-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.logo-image {
+  max-width: 800px;
+  height: auto;
+  transition: all 0.3s ease;
+}
+
+/* Specifica per logo nella lobby */
+.lobby-logo {
+  margin-bottom: 0;
+}
+
+.lobby-logo .logo-image {
+  max-width: 280px;
+}
+
+/* Media query per schermi piccoli */
+@media (max-width: 768px) {
+  .logo-image {
+    max-width: 220px;
+  }
+  
+  .lobby-logo .logo-image {
+    max-width: 180px;
+  }
+  
+  .lobby-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+}

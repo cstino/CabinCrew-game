@@ -12,7 +12,9 @@
     <!-- Auth Screen -->
     <div id="auth-screen" class="screen">
       <div class="container">
-        <h1>CabinCrew</h1>
+        <div class="logo-container">
+          <img src="/asset/images/logo/cabincrew-logo.png" alt="CabinCrew Logo" class="logo-image">
+        </div>
         <div class="auth-tabs">
           <button id="login-tab" class="auth-tab active">Accedi</button>
           <button id="register-tab" class="auth-tab">Registrati</button>
@@ -42,19 +44,21 @@
     <div id="lobby-screen" class="screen hidden">
       <div class="container">
         <div class="lobby-header">
-          <h1>CabinCrew Lobby</h1>
-          <div class="user-controls">
-            <button id="mute-button" class="mute-button">
-              <span id="mute-icon">🔊</span>
-            </button>
-            <div id="user-profile-card" class="user-profile-card">
-              <div class="user-avatar">
-                <span id="user-badge-display">🏆</span>
+            <div class="logo-container lobby-logo">
+              <img src="/asset/images/logo/cabincrew-logo.png" alt="CabinCrew Logo" class="logo-image">
+            </div>
+            <div class="user-controls">
+              <button id="mute-button" class="mute-button">
+                <span id="mute-icon">🔊</span>
+              </button>
+              <div id="user-profile-card" class="user-profile-card">
+                <div class="user-avatar">
+                  <span id="user-badge-display">🏆</span>
+                </div>
+                <div id="username-display">Username</div>
               </div>
-              <div id="username-display">Username</div>
             </div>
           </div>
-        </div>
 
         <div class="lobby-options">
           <div class="option-box">
