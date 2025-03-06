@@ -13,12 +13,27 @@
     <div id="auth-screen" class="screen">
       <div class="container">
         <h1>CabinCrew</h1>
-        <div class="auth-form">
-          <h2>Sign In / Register</h2>
-          <input type="text" id="username" placeholder="Username" required>
-          <input type="email" id="email" placeholder="Email" required>
-          <input type="password" id="password" placeholder="Password" required>
-          <button id="auth-button">Sign In / Register</button>
+        <div class="auth-tabs">
+          <button id="login-tab" class="auth-tab active">Accedi</button>
+          <button id="register-tab" class="auth-tab">Registrati</button>
+        </div>
+        <!-- Login Form -->
+        <div id="login-form" class="auth-form">
+          <h2>Accedi</h2>
+          <input type="email" id="login-email" placeholder="Email" required>
+          <input type="password" id="login-password" placeholder="Password" required>
+          <button id="login-button" class="auth-button">Accedi</button>
+          <p class="auth-footer">Non hai un account? <a href="#" id="switch-to-register">Registrati</a></p>
+        </div>
+        <!-- Register Form -->
+        <div id="register-form" class="auth-form hidden">
+          <h2>Registrati</h2>
+          <input type="text" id="register-username" placeholder="Username" required>
+          <input type="email" id="register-email" placeholder="Email" required>
+          <input type="password" id="register-password" placeholder="Password" required>
+          <input type="password" id="register-confirm-password" placeholder="Conferma Password" required>
+          <button id="register-button" class="auth-button">Registrati</button>
+          <p class="auth-footer">Hai già un account? <a href="#" id="switch-to-login">Accedi</a></p>
         </div>
       </div>
     </div>
@@ -26,29 +41,105 @@
     <!-- Lobby Screen -->
     <div id="lobby-screen" class="screen hidden">
       <div class="container">
-        <h1>CabinCrew Lobby</h1>
+        <div class="lobby-header">
+          <h1>CabinCrew Lobby</h1>
+          <div id="user-profile-card" class="user-profile-card">
+            <div class="user-avatar">
+              <span id="user-badge-display">🏆</span>
+            </div>
+            <div id="username-display">Username</div>
+          </div>
+        </div>
+
         <div class="lobby-options">
           <div class="option-box">
             <h2>Create Room</h2>
-            <input type="text" id="room-name" placeholder="Room Name" required>
-            <input type="number" id="room-code" placeholder="Room Code (numbers only)" required>
-            <input type="number" id="initial-credits" placeholder="Initial Credits" value="10" min="1" step="0.1">
-            <input type="number" id="round-count" placeholder="Number of Rounds" value="5" min="1" max="20">
+            <div class="input-with-tooltip">
+              <input type="text" id="room-name" placeholder="Room Name" required>
+            </div>
+            <div class="input-with-tooltip">
+              <input type="number" id="room-code" placeholder="Room Code (numbers only)" required>
+              <div class="tooltip">This code will be used by other players to join your room</div>
+            </div>
+            <div class="input-with-tooltip">
+              <input type="number" id="initial-credits" placeholder="Initial Credits" value="10" min="1" max="100" step="0.1">
+              <div class="tooltip">Amount of credits each player starts with</div>
+            </div>
+            <div class="input-with-tooltip">
+              <input type="number" id="round-count" placeholder="Number of Rounds" value="5" min="1" max="20">
+              <div class="tooltip">Total number of game rounds before determining the winner</div>
+            </div>
             <div class="checkbox">
               <input type="checkbox" id="enable-bonuses" checked>
               <label for="enable-bonuses">Enable Bonuses</label>
+              <div class="tooltip">Special powers that can be earned during gameplay</div>
             </div>
             <button id="create-room-button">Create Room</button>
           </div>
           <div class="option-box">
             <h2>Join Room</h2>
-            <input type="number" id="join-room-code" placeholder="Enter Room Code" required>
+            <div class="input-with-tooltip">
+              <input type="number" id="join-room-code" placeholder="Enter Room Code" required>
+              <div class="tooltip">Enter the code provided by the room creator</div>
+            </div>
             <button id="join-room-button">Join Room</button>
           </div>
         </div>
-        <div class="profile-section">
-          <button id="profile-button">View Profile</button>
-          <button id="friends-button">Friends</button>
+      </div>
+
+      <!-- Profile Overlay -->
+      <div id="profile-overlay" class="overlay hidden">
+        <div class="overlay-content">
+          <div class="overlay-header">
+            <h2>Your Profile</h2>
+            <button class="close-overlay">×</button>
+          </div>
+          
+          <div class="tabs">
+            <button class="tab-button active" data-tab="profile-tab">Profile</button>
+            <button class="tab-button" data-tab="friends-tab">Friends</button>
+          </div>
+          
+          <div id="profile-tab" class="tab-content">
+            <div class="profile-info">
+              <div class="profile-header">
+                <div id="profile-username">Username</div>
+                <div id="selected-badge">No Badge</div>
+              </div>
+              <div class="stats-container">
+                <div class="stat-item">
+                  <span class="stat-label">Total Games:</span>
+                  <span id="total-games" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Highest Multiplier:</span>
+                  <span id="highest-multiplier" class="stat-value">1.00x</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Games Won:</span>
+                  <span id="games-won" class="stat-value">0</span>
+                </div>
+              </div>
+              <div class="badges-container">
+                <h3>Your Badges</h3>
+                <div id="badges-list"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div id="friends-tab" class="tab-content hidden">
+            <div class="friends-search">
+              <input type="text" id="friend-search" placeholder="Search username">
+              <button id="add-friend-button">Add Friend</button>
+            </div>
+            <div class="friends-list">
+              <h3>Your Friends</h3>
+              <div id="friends-container">
+                <!-- Friends will be populated here -->
+                <div class="no-friends-message">You haven't added any friends yet.</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -173,5 +264,428 @@
   <script type="module" src="src/client/js/AudioManager.js"></script>
   <script type="module" src="src/client/js/BonusSystem.js"></script>
   <script src="dist/bundle.js"></script>
+
+  <!-- Firebase Authentication -->
+  <script type="module">
+    // Importa Firebase
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js';
+    import { 
+      getAuth, 
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      sendEmailVerification
+    } from 'https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js';
+
+    // Config Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyCp5Rt67nkZ_DECiyyim3QuBC-Zgq6y1Dw",
+      authDomain: "cabincrew-game.firebaseapp.com",
+      projectId: "cabincrew-game",
+      storageBucket: "cabincrew-game.firebasestorage.app",
+      messagingSenderId: "525011831374",
+      appId: "1:525011831374:web:ace85fdd1963f62485911f",
+      measurementId: "G-6YSD9F2ZHQ"
+    };
+
+    // Inizializza Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Elementi UI
+      const loginTab = document.getElementById('login-tab');
+      const registerTab = document.getElementById('register-tab');
+      const loginForm = document.getElementById('login-form');
+      const registerForm = document.getElementById('register-form');
+      const switchToRegister = document.getElementById('switch-to-register');
+      const switchToLogin = document.getElementById('switch-to-login');
+      const loginButton = document.getElementById('login-button');
+      const registerButton = document.getElementById('register-button');
+
+      console.log('Firebase Auth script caricato');
+
+      // Funzioni per cambiare form
+      function showLoginForm() {
+        loginTab.classList.add('active');
+        registerTab.classList.remove('active');
+        loginForm.classList.remove('hidden');
+        registerForm.classList.add('hidden');
+        console.log('Login form attivato');
+      }
+
+      function showRegisterForm() {
+        registerTab.classList.add('active');
+        loginTab.classList.remove('active');
+        registerForm.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+        console.log('Registration form attivato');
+      }
+
+      // Gestisce la registrazione
+      async function handleRegister() {
+        const username = document.getElementById('register-username').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        const confirmPassword = document.getElementById('register-confirm-password').value;
+
+        console.log('Tentativo di registrazione per:', email);
+
+        // Validazione
+        if (!username || !email || !password || !confirmPassword) {
+          alert('Compila tutti i campi richiesti');
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          alert('Le password non corrispondono');
+          return;
+        }
+
+        try {
+          console.log('Creazione utente in Firebase...');
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+          
+          // Invia email di verifica
+          console.log('Invio email di verifica...');
+          await sendEmailVerification(user);
+          
+          alert('Registrazione completata! Ti abbiamo inviato un\'email di conferma.');
+          showLoginForm();
+        } catch (error) {
+          console.error('Errore di registrazione:', error);
+          alert('Errore di registrazione: ' + error.message);
+        }
+      }
+
+      // Gestisce il login
+      async function handleLogin() {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+
+        console.log('Tentativo di login per:', email);
+
+        if (!email || !password) {
+          alert('Compila tutti i campi richiesti');
+          return;
+        }
+
+        try {
+          console.log('Login in corso...');
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+          
+          if (!user.emailVerified) {
+            alert('Per favore verifica la tua email prima di accedere.');
+            return;
+          }
+          
+          // Salva i dati utente nella sessione
+          sessionStorage.setItem('user', JSON.stringify({
+            id: user.uid,
+            username: user.displayName || email.split('@')[0],
+            email: user.email
+          }));
+          
+          // Reindirizza alla lobby
+          document.getElementById('auth-screen').classList.add('hidden');
+          document.getElementById('lobby-screen').classList.remove('hidden');
+        } catch (error) {
+          console.error('Errore di login:', error);
+          alert('Errore di login: ' + error.message);
+        }
+      }
+
+      // Collegamenti event listener
+      loginTab.onclick = showLoginForm;
+      registerTab.onclick = showRegisterForm;
+      
+      switchToRegister.onclick = function(e) {
+        e.preventDefault();
+        showRegisterForm();
+      };
+      
+      switchToLogin.onclick = function(e) {
+        e.preventDefault();
+        showLoginForm();
+      };
+
+      // Collega i bottoni auth
+      loginButton.addEventListener('click', handleLogin);
+      registerButton.addEventListener('click', handleRegister);
+
+      console.log('Event handlers di autenticazione collegati');
+    });
+  </script>
+
+  <!-- Lobby JavaScript -->
+  <script>
+    // JavaScript per gestire la nuova interfaccia lobby
+    document.addEventListener('DOMContentLoaded', function() {
+      // Gestione navigazione e azioni
+      initLobbyEvents();
+      updateUserProfile();
+    });
+
+    function initLobbyEvents() {
+      // Profilo utente in alto a destra
+      const userProfileCard = document.getElementById('user-profile-card');
+      const profileOverlay = document.getElementById('profile-overlay');
+      const closeOverlayButtons = document.querySelectorAll('.close-overlay');
+      
+      // Mostra overlay profilo/amici
+      if (userProfileCard) {
+        userProfileCard.addEventListener('click', function() {
+          if (profileOverlay) profileOverlay.classList.remove('hidden');
+        });
+      }
+      
+      // Chiudi overlay
+      closeOverlayButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const overlay = this.closest('.overlay');
+          if (overlay) overlay.classList.add('hidden');
+        });
+      });
+      
+      // Tab di navigazione nel profilo
+      const tabButtons = document.querySelectorAll('.tab-button');
+      tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          // Rimuovi classe active da tutti i tab
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          // Aggiungi classe active al tab cliccato
+          this.classList.add('active');
+          
+          // Nascondi tutti i contenuti tab
+          const tabContents = document.querySelectorAll('.tab-content');
+          tabContents.forEach(content => content.classList.add('hidden'));
+          
+          // Mostra il contenuto del tab selezionato
+          const tabId = this.getAttribute('data-tab');
+          const activeContent = document.getElementById(tabId);
+          if (activeContent) activeContent.classList.remove('hidden');
+        });
+      });
+      
+      // Gestione pulsanti della lobby
+      const createRoomButton = document.getElementById('create-room-button');
+      const joinRoomButton = document.getElementById('join-room-button');
+      const addFriendButton = document.getElementById('add-friend-button');
+      
+      if (createRoomButton) {
+        createRoomButton.addEventListener('click', function() {
+          handleCreateRoom();
+        });
+      }
+      
+      if (joinRoomButton) {
+        joinRoomButton.addEventListener('click', function() {
+          handleJoinRoom();
+        });
+      }
+      
+      if (addFriendButton) {
+        addFriendButton.addEventListener('click', function() {
+          handleAddFriend();
+        });
+      }
+      
+      // Gestione eventi escape per chiudere gli overlay
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          const overlays = document.querySelectorAll('.overlay:not(.hidden)');
+          overlays.forEach(overlay => overlay.classList.add('hidden'));
+        }
+      });
+    }
+
+    // Aggiorna le informazioni del profilo utente dall'autenticazione
+    function updateUserProfile() {
+      const user = getLoggedInUser();
+      if (!user) return;
+      
+      // Aggiorna il display del nome utente
+      const usernameDisplay = document.getElementById('username-display');
+      const profileUsername = document.getElementById('profile-username');
+      
+      if (usernameDisplay) usernameDisplay.textContent = user.username;
+      if (profileUsername) profileUsername.textContent = user.username;
+    }
+
+    // Ottieni l'utente attualmente loggato
+    function getLoggedInUser() {
+      const userData = sessionStorage.getItem('user');
+      return userData ? JSON.parse(userData) : null;
+    }
+
+    // Gestione creazione stanza
+    function handleCreateRoom() {
+      const roomName = document.getElementById('room-name').value;
+      const roomCode = document.getElementById('room-code').value;
+      const initialCredits = document.getElementById('initial-credits').value;
+      const roundCount = document.getElementById('round-count').value;
+      const enableBonuses = document.getElementById('enable-bonuses').checked;
+      
+      // Validazione
+      if (!roomName || !roomCode) {
+        alert('Per favore inserisci il nome e il codice della stanza');
+        return;
+      }
+      
+      // Invia i dati al server (simulato per ora)
+      console.log('Creazione stanza:', {
+        name: roomName,
+        code: roomCode,
+        initialCredits,
+        roundCount,
+        enableBonuses
+      });
+      
+      // Passa alla schermata di gioco (simulazione)
+      document.getElementById('lobby-screen').classList.add('hidden');
+      document.getElementById('game-room-screen').classList.remove('hidden');
+      
+      // Aggiorna l'interfaccia di gioco
+      document.getElementById('room-title').textContent = roomName;
+      document.getElementById('room-code-display').textContent = 'Code: ' + roomCode;
+      document.getElementById('round-info').textContent = 'Round 0/' + roundCount;
+    }
+
+    // Gestione partecipazione stanza
+    function handleJoinRoom() {
+      const roomCode = document.getElementById('join-room-code').value;
+      
+      if (!roomCode) {
+        alert('Per favore inserisci il codice della stanza');
+        return;
+      }
+      
+      // Simula la richiesta al server
+      console.log('Partecipazione alla stanza con codice:', roomCode);
+      
+      // Simulazione - In un'app reale, dovresti verificare se la stanza esiste
+      document.getElementById('lobby-screen').classList.add('hidden');
+      document.getElementById('game-room-screen').classList.remove('hidden');
+      
+      // Aggiorna l'interfaccia con dati simulati
+      document.getElementById('room-title').textContent = 'Stanza #' + roomCode;
+      document.getElementById('room-code-display').textContent = 'Code: ' + roomCode;
+    }
+
+    // Gestione aggiunta amici
+    function handleAddFriend() {
+      const friendUsername = document.getElementById('friend-search').value;
+      
+      if (!friendUsername) {
+        alert('Per favore inserisci un nome utente da cercare');
+        return;
+      }
+      
+      // Simula la ricerca di un amico
+      console.log('Ricerca utente:', friendUsername);
+      
+      // Simulazione di un'aggiunta amico riuscita
+      alert('Richiesta di amicizia inviata a ' + friendUsername);
+      document.getElementById('friend-search').value = '';
+      
+      // Aggiorna la lista amici (simulazione)
+      const friendsContainer = document.getElementById('friends-container');
+      const noFriendsMessage = document.querySelector('.no-friends-message');
+      
+      if (noFriendsMessage) {
+        noFriendsMessage.remove();
+      }
+      
+      const friendElement = document.createElement('div');
+      friendElement.className = 'friend-item';
+      friendElement.innerHTML = `
+        <div class="friend-info">
+          <div class="friend-avatar">👤</div>
+          <div class="friend-username">${friendUsername}</div>
+        </div>
+        <div class="friend-actions">
+          <button class="friend-action-btn">Message</button>
+        </div>
+      `;
+      
+      if (friendsContainer) {
+        friendsContainer.appendChild(friendElement);
+      }
+    }
+  </script>
+  <script>
+    // Test audio da aggiungere a index.html
+    document.addEventListener('DOMContentLoaded', function() {
+      // Crea un pannello di test audio
+      const testDiv = document.createElement('div');
+      testDiv.style.position = 'fixed';
+      testDiv.style.bottom = '20px';
+      testDiv.style.right = '20px';
+      testDiv.style.background = 'rgba(0,0,0,0.8)';
+      testDiv.style.color = 'white';
+      testDiv.style.padding = '10px';
+      testDiv.style.borderRadius = '5px';
+      testDiv.style.zIndex = '9999';
+      testDiv.innerHTML = `
+        <div>Test Audio</div>
+        <button id="test-menu-music">Menu Music</button>
+        <button id="test-game-music">Game Music</button>
+        <button id="test-stop">Stop</button>
+        <div id="test-status">Stato: in attesa</div>
+      `;
+      
+      document.body.appendChild(testDiv);
+      
+      // Funzione per testare un file audio specifico
+      function testAudio(src) {
+        console.log(`Test audio: ${src}`);
+        const audio = new Audio(src);
+        audio.volume = 0.3;
+        
+        // Riproduci con gestione errori
+        audio.play()
+          .then(() => {
+            console.log('Audio avviato con successo');
+            document.getElementById('test-status').textContent = `Riproduzione: ${src}`;
+          })
+          .catch(error => {
+            console.error(`Errore riproduzione ${src}:`, error);
+            document.getElementById('test-status').textContent = `Errore: ${error.message}`;
+          });
+          
+        return audio;
+      }
+      
+      // Riferimenti agli elementi audio
+      let menuAudio = null;
+      let gameAudio = null;
+      
+      // Aggiungi event listener
+      document.getElementById('test-menu-music').addEventListener('click', () => {
+        if (menuAudio) menuAudio.pause();
+        if (gameAudio) gameAudio.pause();
+        menuAudio = testAudio('/assets/audio/menu-music.mp3');
+      });
+      
+      document.getElementById('test-game-music').addEventListener('click', () => {
+        if (menuAudio) menuAudio.pause();
+        if (gameAudio) gameAudio.pause();
+        gameAudio = testAudio('/assets/audio/game-track-1.mp3');
+      });
+      
+      document.getElementById('test-stop').addEventListener('click', () => {
+        if (menuAudio) {
+          menuAudio.pause();
+          menuAudio = null;
+        }
+        if (gameAudio) {
+          gameAudio.pause();
+          gameAudio = null;
+        }
+        document.getElementById('test-status').textContent = 'Audio fermato';
+      });
+    });
+  </script>
 </body>
 </html>
