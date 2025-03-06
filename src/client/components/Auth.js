@@ -61,6 +61,13 @@ function handleSuccessfulAuth(user, username, socket) {
 }
 
 function getCurrentUser() {
+  // Prima cerca nella sessionStorage (nuovo modo)
+  const userData = sessionStorage.getItem('user');
+  if (userData) {
+    return JSON.parse(userData);
+  }
+  
+  // Fallback al vecchio metodo se non c'è niente nella sessionStorage
   return currentUser;
 }
 

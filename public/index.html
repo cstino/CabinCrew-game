@@ -107,7 +107,12 @@
           <div id="profile-tab" class="tab-content">
             <div class="profile-info">
               <div class="profile-header">
-                <div id="profile-username">Username</div>
+                <div class="username-container">
+                  <div id="profile-tab-username">Username</div>
+                  <button id="edit-username-button-overlay" class="edit-button">
+                    <span>✏️</span>
+                  </button>
+                </div>
                 <div id="selected-badge">No Badge</div>
               </div>
               <div class="stats-container">
@@ -215,31 +220,12 @@
         <h1>Your Profile</h1>
         <div class="profile-info">
           <div class="profile-header">
-            <div id="profile-username">Username</div>
-            <!-- Nel profile-tab, dopo il div profile-username -->
-<div class="profile-header">
-  <div class="username-container">
-    <div id="profile-username">Username</div>
-    <button id="edit-username-button" class="edit-button">
-      <span>✏️</span>
-    </button>
-  </div>
-  <div id="selected-badge">No Badge</div>
-</div>
-
-<!-- Aggiungi questo modal/dialog alla fine della sezione profile-screen -->
-<div id="edit-username-modal" class="modal hidden">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>Modifica Username</h3>
-      <button class="close-modal">×</button>
-    </div>
-    <div class="modal-body">
-      <input type="text" id="new-username" placeholder="Nuovo username">
-      <button id="save-username-button" class="primary-button">Salva</button>
-    </div>
-  </div>
-</div>
+            <div class="username-container">
+              <div id="profile-username">Username</div>
+              <button id="edit-username-button" class="edit-button">
+                <span>✏️</span>
+              </button>
+            </div>
             <div id="selected-badge">No Badge</div>
           </div>
           <div class="stats-container">
@@ -326,9 +312,9 @@
       console.log('Registration form attivato');
     }
 
-    // Gestisce la registrazione
+    // Gestisce la registrazione con verifica username
     async function handleRegister() {
-      const username = document.getElementById('register-username').value;
+      const username = document.getElementById('register-username').value.trim();
       const email = document.getElementById('register-email').value;
       const password = document.getElementById('register-password').value;
       const confirmPassword = document.getElementById('register-confirm-password').value;
@@ -345,11 +331,35 @@
         alert('Le password non corrispondono');
         return;
       }
-
+      
+      // Disabilita il pulsante di registrazione
+      const registerButton = document.getElementById('register-button');
+      if (registerButton) {
+        registerButton.disabled = true;
+        registerButton.textContent = 'Verifico disponibilità...';
+      }
+      
       try {
-        console.log('Creazione utente in Firebase...');
+        // Importa la funzione isUsernameAvailable
+        const { isUsernameAvailable, reserveUsername } = await import('/src/client/js/firebaseConfig.js');
+        
+        // Verifica disponibilità username
+        const isAvailable = await isUsernameAvailable(username);
+        if (!isAvailable) {
+          alert('Username già in uso. Scegline un altro.');
+          if (registerButton) {
+            registerButton.disabled = false;
+            registerButton.textContent = 'Registrati';
+          }
+          return;
+        }
+        
+        console.log('Username disponibile, creazione utente in Firebase...');
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+        
+        // Salva l'username in Firebase
+        await reserveUsername(user.uid, username);
         
         // Salva l'username in localStorage persistente
         localStorage.setItem('username_' + user.uid, username);
@@ -364,6 +374,12 @@
       } catch (error) {
         console.error('Errore di registrazione:', error);
         alert('Errore di registrazione: ' + error.message);
+      } finally {
+        // Riabilita il pulsante
+        if (registerButton) {
+          registerButton.disabled = false;
+          registerButton.textContent = 'Registrati';
+        }
       }
     }
 
@@ -441,8 +457,12 @@
   document.addEventListener('DOMContentLoaded', function() {
     // Gestione navigazione e azioni
     initLobbyEvents();
+    // Inizializza l'interfaccia
     updateUserProfile();
-    initUsernameEdit(); // Inizializza la funzionalità di modifica username
+    // Attiva la modifica username
+    setTimeout(() => {
+      initUsernameEdit();
+    }, 300);
   });
  
   function initLobbyEvents() {
@@ -525,12 +545,17 @@
     
     if (!user) return;
     
-    // Aggiorna il display del nome utente
+    // Aggiorna tutti i display del nome utente
     const usernameDisplay = document.getElementById('username-display');
-    const profileUsername = document.getElementById('profile-username');
-    
     if (usernameDisplay) usernameDisplay.textContent = user.username;
+    
+    // Aggiorna l'username nella schermata profilo
+    const profileUsername = document.getElementById('profile-username');
     if (profileUsername) profileUsername.textContent = user.username;
+    
+    // Aggiorna l'username nel tab profilo dell'overlay
+    const profileTabUsername = document.getElementById('profile-tab-username');
+    if (profileTabUsername) profileTabUsername.textContent = user.username;
   }
  
   // Ottieni l'utente attualmente loggato
@@ -662,55 +687,119 @@
   // Funzionalità per la modifica dello username
   function initUsernameEdit() {
     const editButton = document.getElementById('edit-username-button');
+    const editButtonOverlay = document.getElementById('edit-username-button-overlay');
     const modal = document.getElementById('edit-username-modal');
     
-    if (!editButton || !modal) return;
+    if (!modal) {
+      console.error('Modal per la modifica username non trovato');
+      return;
+    }
     
     const closeButton = modal.querySelector('.close-modal');
     const saveButton = document.getElementById('save-username-button');
     
-    // Apri modal
-    editButton.addEventListener('click', function() {
-      const currentUsername = document.getElementById('profile-username').textContent;
-      document.getElementById('new-username').value = currentUsername;
-      modal.classList.remove('hidden');
-    });
+    // Funzione per aprire il modal
+    function openEditModal() {
+      const user = getLoggedInUser();
+      if (user) {
+        document.getElementById('new-username').value = user.username;
+        modal.classList.remove('hidden');
+      }
+    }
+    
+    // Aggiungi event listener al bottone nella schermata profilo
+    if (editButton) {
+      editButton.addEventListener('click', function(e) {
+        e.stopPropagation(); // Previene la propagazione dell'evento click
+        openEditModal();
+      });
+    }
+    
+    // Aggiungi event listener al bottone nell'overlay
+    if (editButtonOverlay) {
+      editButtonOverlay.addEventListener('click', function(e) {
+        e.stopPropagation(); // Previene la propagazione dell'evento click
+        openEditModal();
+      });
+    }
     
     // Chiudi modal
-    closeButton.addEventListener('click', function() {
-      modal.classList.add('hidden');
-    });
+    if (closeButton) {
+      closeButton.addEventListener('click', function() {
+        modal.classList.add('hidden');
+      });
+    }
     
-    // Salva nuovo username
-    saveButton.addEventListener('click', function() {
-      const newUsername = document.getElementById('new-username').value.trim();
-      
-      if (!newUsername) {
-        alert('Inserisci un username valido');
-        return;
-      }
-      
-      // Ottieni utente corrente
-      const user = getLoggedInUser();
-      if (!user) return;
-      
-      // Aggiorna localStorage e sessionStorage
-      localStorage.setItem('username_' + user.id, newUsername);
-      
-      const updatedUser = {
-        ...user,
-        username: newUsername
-      };
-      
-      sessionStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      // Aggiorna UI
-      document.getElementById('profile-username').textContent = newUsername;
-      document.getElementById('username-display').textContent = newUsername;
-      
-      // Chiudi modal
-      modal.classList.add('hidden');
-    });
+    // Salva nuovo username (versione semplificata)
+    if (saveButton) {
+      saveButton.addEventListener('click', function() {
+        const newUsername = document.getElementById('new-username').value.trim();
+        
+        if (!newUsername) {
+          alert('Inserisci un username valido');
+          return;
+        }
+        
+        // Ottieni utente corrente
+        const user = getLoggedInUser();
+        if (!user) return;
+        
+        // Disabilita il pulsante durante la verifica
+        saveButton.disabled = true;
+        saveButton.textContent = 'Salvataggio...';
+        
+        // Se l'username è uguale a quello attuale, non serve modificare
+        if (user.username === newUsername) {
+          // Chiudi modal
+          modal.classList.add('hidden');
+          saveButton.disabled = false;
+          saveButton.textContent = 'Salva';
+          return;
+        }
+        
+        // Aggiorna username nei dati locali
+        console.log('Aggiornamento username:', user.username, '->', newUsername);
+        
+        try {
+          // Aggiorna localStorage e sessionStorage
+          localStorage.setItem('username_' + user.id, newUsername);
+          
+          const updatedUser = {
+            ...user,
+            username: newUsername
+          };
+          
+          sessionStorage.setItem('user', JSON.stringify(updatedUser));
+          
+          // Aggiorna tutti gli elementi UI
+          const profileUsername = document.getElementById('profile-username');
+          if (profileUsername) profileUsername.textContent = newUsername;
+          
+          const profileTabUsername = document.getElementById('profile-tab-username');
+          if (profileTabUsername) profileTabUsername.textContent = newUsername;
+          
+          const usernameDisplay = document.getElementById('username-display');
+          if (usernameDisplay) usernameDisplay.textContent = newUsername;
+          
+          // Nota: La funzionalità Firebase per verificare l'unicità dell'username
+          // è stata temporaneamente disattivata per motivi di compatibilità.
+          // In una versione futura, potrebbe essere implementata tramite 
+          // un endpoint del server o una Cloud Function.
+          
+          console.log('Username aggiornato con successo in locale');
+          
+          // Chiudi modal
+          modal.classList.add('hidden');
+        } catch (error) {
+          console.error('Errore nell\'aggiornamento dell\'username:', error);
+          alert('Si è verificato un errore durante il salvataggio dell\'username');
+        } finally {
+          // Riabilita il pulsante
+          saveButton.disabled = false;
+          saveButton.textContent = 'Salva';
+        }
+      });
+    }
     
     // Chiudi con Escape
     document.addEventListener('keydown', function(e) {
@@ -718,6 +807,8 @@
         modal.classList.add('hidden');
       }
     });
+    
+    console.log('Inizializzazione pulsanti modifica username completata');
   }
  </script>
   <script>
@@ -859,5 +950,19 @@
     }
   });
 </script>
+
+<!-- Modal per modificare l'username -->
+<div id="edit-username-modal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Modifica Username</h3>
+      <button class="close-modal">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" id="new-username" placeholder="Nuovo username">
+      <button id="save-username-button" class="primary-button">Salva</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

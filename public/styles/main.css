@@ -529,6 +529,9 @@ input::placeholder {
   font-weight: bold;
   color: var(--secondary-color);
   text-shadow: 0 0 10px rgba(54, 226, 236, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 #selected-badge {

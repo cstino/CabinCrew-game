@@ -23,4 +23,10 @@ module.exports = {
   resolve: {
     extensions: ['.js'],
   },
+  // Disabilita gli avvisi sulla dimensione del bundle
+  performance: {
+    hints: false,
+    maxEntrypointSize: 512000,
+    maxAssetSize: 512000
+  },
 };
