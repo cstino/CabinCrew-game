@@ -9,17 +9,17 @@ class AudioManager {
     
     // Musica del menu - Scegli un file specifico
     this.menuMusic = new Audio();
-    this.menuMusic.src = '/public/asset/audio/ripples in the sand.mp3'; // Cambia con il nome del tuo file
+    this.menuMusic.src = '/asset/audio/ripples in the sand.mp3'; // Cambia con il nome del tuo file
     this.menuMusic.loop = true;
     this.menuMusic.volume = this.musicVolume;
     
     // Playlist di brani per i round di gioco
     this.gamePlaylist = [
-      '/public/asset/audio/time.mp3',
-      '/public/asset/audio/cornfield chase.mp3',
-      '/public/asset/audio/stay.mp3',
-      '/public/asset/audio/No Time For Caution.mp3',
-      '/public/asset/audio/coward.mp3'
+      '/asset/audio/time.mp3',
+      '/asset/audio/cornfield chase.mp3',
+      '/asset/audio/stay.mp3',
+      '/asset/audio/No Time For Caution.mp3',
+      '/asset/audio/coward.mp3'
       // Aggiungi altri brani se necessario
     ];
     
