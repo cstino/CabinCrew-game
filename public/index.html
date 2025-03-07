@@ -52,8 +52,8 @@
                 <span id="mute-icon">🔊</span>
               </button>
               <div id="user-profile-card" class="user-profile-card">
-                <div class="user-avatar">
-                  <span id="user-badge-display">🏆</span>
+                <div class="user-badge">
+                  <img id="selected-badge-icon" src="/asset/images/badges/default-badge.png" alt="Badge">
                 </div>
                 <div id="username-display">Username</div>
               </div>
@@ -130,10 +130,12 @@
                 </div>
               </div>
               <div class="badges-container">
-                <h3>Your Badges</h3>
-                <div id="badges-list"></div>
+                <h3>I tuoi Badge</h3>
+                <p class="badge-description">Seleziona un badge da mostrare nel tuo profilo</p>
+                <div id="badges-list" class="badges-grid">
+                  <!-- I badge verranno aggiunti dinamicamente -->
+                </div>
               </div>
-            </div>
           </div>
           
           <div id="friends-tab" class="tab-content hidden">
@@ -556,7 +558,10 @@
     // Aggiorna l'username nel tab profilo dell'overlay
     const profileTabUsername = document.getElementById('profile-tab-username');
     if (profileTabUsername) profileTabUsername.textContent = user.username;
-  }
+    
+    // Carica i badge dell'utente
+    loadUserBadges();
+}
  
   // Ottieni l'utente attualmente loggato
   function getLoggedInUser() {
@@ -810,6 +815,66 @@
     
     console.log('Inizializzazione pulsanti modifica username completata');
   }
+  // I badge vengono ora gestiti dal badge manager
+  // Questa sezione è obsoleta e verrà rimossa in una prossima versione
+
+// Le funzioni relative ai badge sono state spostate nel modulo badgeManager.js
+// Queste funzioni sono mantenute qui temporaneamente per la retrocompatibilità, 
+// ma verranno rimosse in una versione futura
+
+// Funzione per caricare i badge dell'utente
+async function loadUserBadges() {
+  // Importa solo se necessario (il profilo ora gestisce questo autonomamente)
+  try {
+    const badgeManager = await import('/src/client/js/badgeManager.js');
+    const user = getLoggedInUser();
+    if (!user) return;
+    
+    // Aggiorna l'icona del badge selezionato
+    const { badges, selectedBadge } = await badgeManager.default.getUserBadges(user.id || user.uid);
+    
+    if (selectedBadge) {
+      const badgeInfo = badgeManager.default.getBadgeInfo(selectedBadge);
+      if (badgeInfo && badgeInfo.image) {
+        const badgeIcon = document.getElementById('selected-badge-icon');
+        if (badgeIcon) {
+          badgeIcon.src = badgeInfo.image;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Errore nel caricamento dei badge:', error);
+  }
+}
+
+// Funzione per selezionare un badge (mantenuta per retrocompatibilità)
+async function selectBadge(badgeId) {
+  try {
+    const badgeManager = await import('/src/client/js/badgeManager.js');
+    const user = getLoggedInUser();
+    if (!user) return;
+    
+    await badgeManager.default.selectBadge(user.id || user.uid, badgeId);
+    
+    // Aggiorna l'interfaccia
+    const badgeInfo = badgeManager.default.getBadgeInfo(badgeId);
+    if (badgeInfo && badgeInfo.image) {
+      const badgeIcon = document.getElementById('selected-badge-icon');
+      if (badgeIcon) {
+        badgeIcon.src = badgeInfo.image;
+      }
+    }
+    
+    // Aggiorna anche la sessione locale
+    const userData = JSON.parse(sessionStorage.getItem('user'));
+    if (userData) {
+      userData.selectedBadge = badgeId;
+      sessionStorage.setItem('user', JSON.stringify(userData));
+    }
+  } catch (error) {
+    console.error('Errore nella selezione del badge:', error);
+  }
+}
  </script>
   <script>
     // Test audio da aggiungere a index.html

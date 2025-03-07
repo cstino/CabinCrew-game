@@ -1,5 +1,15 @@
 // src/client/components/Gameplay.js
 import { updateMultiplierAnimation } from '../utils/animations.js';
+import { getCurrentUser } from './Auth.js';
+import badgeManager from '../js/badgeManager.js';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { db } from '../js/firebaseConfig.js';
+
+// Track game stats for the current session
+let currentGameStats = {
+  multiplier: 0,
+  isWinner: false
+};
 
 function setupGameplayListeners(socket) {
   const readyButton = document.getElementById('ready-button');
@@ -47,6 +57,25 @@ function setupGameplayListeners(socket) {
       betAmountInput.value = '100';
     }
   });
+  
+  // Socket event listeners for game updates
+  socket.on('roundResults', (results) => {
+    if (results && results.players) {
+      const user = getCurrentUser();
+      if (user) {
+        // Find player results
+        const playerResult = results.players.find(p => p.id === user.uid || p.id === user.id);
+        if (playerResult) {
+          // Store results for badge processing
+          currentGameStats.multiplier = playerResult.multiplier || 0;
+          currentGameStats.isWinner = playerResult.isWinner || false;
+          
+          // Process game results and update badges
+          processGameResults();
+        }
+      }
+    }
+  });
 }
 
 function startRound() {
@@ -65,6 +94,12 @@ function startRound() {
   
   // Reset multiplier display
   updateMultiplier(1.0);
+  
+  // Reset current game stats
+  currentGameStats = {
+    multiplier: 0,
+    isWinner: false
+  };
 }
 
 function endRound() {
@@ -88,6 +123,9 @@ function updateMultiplier(value) {
   
   // Update animation
   updateMultiplierAnimation(value);
+  
+  // Track the current multiplier for badge processing
+  currentGameStats.multiplier = value;
 }
 
 function showCountdown(count) {
@@ -126,6 +164,84 @@ function updateBonusStatus(bonuses) {
   }
 }
 
+// Funzione per processare i risultati della partita e aggiornare badge
+async function processGameResults() {
+  const user = getCurrentUser();
+  if (!user) return;
+  
+  try {
+    const userId = user.uid || user.id;
+    
+    // Ottieni le statistiche utente
+    let userStats = await getUserStats(userId);
+    if (!userStats) {
+      userStats = {
+        totalGames: 0,
+        highestMultiplier: 0,
+        wins: 0
+      };
+    }
+    
+    // Aggiorna le statistiche in base ai risultati della partita
+    userStats.totalGames = (userStats.totalGames || 0) + 1;
+    
+    // Aggiorna il moltiplicatore più alto
+    if (currentGameStats.multiplier > (userStats.highestMultiplier || 0)) {
+      userStats.highestMultiplier = currentGameStats.multiplier;
+    }
+    
+    // Aggiorna il conteggio delle vittorie
+    if (currentGameStats.isWinner) {
+      userStats.wins = (userStats.wins || 0) + 1;
+    }
+    
+    // Salva le statistiche aggiornate
+    await updateUserStats(userId, userStats);
+    
+    // Aggiorna le badge in base ai nuovi progressi
+    await badgeManager.checkBadgeAchievements(userId, userStats);
+    
+    console.log('Statistiche aggiornate:', userStats);
+  } catch (error) {
+    console.error('Errore nell\'elaborazione dei risultati del gioco:', error);
+  }
+}
+
+// Funzione per ottenere le statistiche utente
+async function getUserStats(userId) {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (userDoc.exists() && userDoc.data().stats) {
+      return userDoc.data().stats;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Errore nel recupero delle statistiche utente:', error);
+    return null;
+  }
+}
+
+// Funzione per aggiornare le statistiche utente
+async function updateUserStats(userId, stats) {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, { stats }, { merge: true });
+    
+    // Aggiorna anche le statistiche nella sessione per la persistenza locale
+    const userData = JSON.parse(sessionStorage.getItem('user')) || {};
+    userData.stats = stats;
+    sessionStorage.setItem('user', JSON.stringify(userData));
+    
+    return true;
+  } catch (error) {
+    console.error('Errore nell\'aggiornamento delle statistiche:', error);
+    return false;
+  }
+}
+
 export { 
   setupGameplayListeners, 
   startRound, 
@@ -134,5 +250,6 @@ export {
   showCountdown,
   updatePlayerCredits,
   updateStatusMessage,
-  updateBonusStatus
+  updateBonusStatus,
+  processGameResults
 };

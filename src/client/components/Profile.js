@@ -1,5 +1,8 @@
 // src/client/components/Profile.js
 import { getCurrentUser } from './Auth.js';
+import badgeManager from '../js/badgeManager.js';
+import { updateDoc, doc } from 'firebase/firestore';
+import { db } from '../js/firebaseConfig.js';
 
 // HTML for the edit username modal
 const editUsernameModalHTML = `
@@ -39,7 +42,7 @@ function setupProfileListeners() {
   setTimeout(loadProfileData, 500);
 }
 
-function loadProfileData() {
+async function loadProfileData() {
   const user = getCurrentUser();
   if (!user) return;
 
@@ -92,88 +95,300 @@ function loadProfileData() {
     profileUsernameElement.appendChild(editButton);
   }
 
-  // For demo purposes, we'll use mock data
-  // In a real app, this would be fetched from Firebase
-  const profileData = {
-    totalGames: 27,
-    highestMultiplier: 8.54,
-    gamesWon: 12,
-    badges: [
-      { id: 'first_win', name: 'First Win', icon: '🏆' },
-      { id: 'high_flyer', name: 'High Flyer', icon: '✈️' },
-      { id: 'survivor', name: 'Survivor', icon: '🛡️' },
-      { id: 'risk_taker', name: 'Risk Taker', icon: '🎯' },
-    ],
-    selectedBadge: 'high_flyer',
-  };
-
-  // Update stats
-  document.getElementById('total-games').textContent = profileData.totalGames;
-  document.getElementById(
-    'highest-multiplier'
-  ).textContent = `${profileData.highestMultiplier.toFixed(2)}x`;
-  document.getElementById('games-won').textContent = profileData.gamesWon;
-
-  // Update badges
-  const badgesList = document.getElementById('badges-list');
-  badgesList.innerHTML = '';
-
-  profileData.badges.forEach((badge) => {
-    const badgeItem = document.createElement('div');
-    badgeItem.className = `badge-item ${
-      badge.id === profileData.selectedBadge ? 'badge-selected' : ''
-    }`;
-    badgeItem.dataset.badgeId = badge.id;
-
-    const badgeIcon = document.createElement('div');
-    badgeIcon.className = 'badge-icon';
-    badgeIcon.textContent = badge.icon;
-
-    const badgeName = document.createElement('div');
-    badgeName.className = 'badge-name';
-    badgeName.textContent = badge.name;
-
-    badgeItem.appendChild(badgeIcon);
-    badgeItem.appendChild(badgeName);
-
-    // Add click handler to select badge
-    badgeItem.addEventListener('click', () => selectBadge(badge.id));
-
-    badgesList.appendChild(badgeItem);
-  });
-
-  // Set selected badge in header
-  const selectedBadge = profileData.badges.find(
-    (b) => b.id === profileData.selectedBadge
-  );
-  if (selectedBadge) {
-    document.getElementById(
-      'selected-badge'
-    ).textContent = `${selectedBadge.icon} ${selectedBadge.name}`;
+  try {
+    const userId = user.uid || user.id;
+    console.log('Caricamento profilo per utente:', userId);
+    
+    // Ottieni i badge e le statistiche dell'utente da Firebase
+    let { badges, selectedBadge } = await badgeManager.getUserBadges(userId);
+    
+    // Inizializzazione badge se necessario
+    if (!badges || badges.length === 0) {
+      console.log('Inizializzazione badge utente...');
+      badges = await badgeManager.initializeUserBadges(userId);
+      selectedBadge = badges && badges.length > 0 ? badges[0] : null;
+    }
+    
+    console.log('Badge utente:', badges, 'Badge selezionato:', selectedBadge);
+    
+    // Ottieni anche le statistiche dell'utente
+    let userStats = {
+      totalGames: 0,
+      highestMultiplier: 0,
+      wins: 0
+    };
+    
+    // Controllo se ci sono statistiche locali da sincronizzare
+    const localStats = getLocalStats();
+    if (localStats) {
+      // Aggiorna le statistiche su Firebase
+      await badgeManager.updateUserStats(userId, localStats);
+      userStats = localStats;
+    }
+    
+    // Update stats nella UI
+    updateStatsDisplay(userStats);
+    
+    // Carica i badge nella UI
+    await loadBadgesUI(badges, selectedBadge, userId);
+    
+  } catch (error) {
+    console.error('Errore nel caricamento del profilo:', error);
+    // In caso di errore, mostriamo dati locali
+    const localStats = getLocalStats();
+    if (localStats) {
+      updateStatsDisplay(localStats);
+    }
+    
+    // In caso di errore, carica almeno il badge predefinito
+    try {
+      await loadBadgesUI(["season1-badge"], "season1-badge", user.uid || user.id);
+    } catch (badgeError) {
+      console.error('Errore nel caricamento fallback dei badge:', badgeError);
+    }
   }
 }
 
-function selectBadge(badgeId) {
-  // Update UI
-  document.querySelectorAll('.badge-item').forEach((item) => {
-    item.classList.remove('badge-selected');
-    if (item.dataset.badgeId === badgeId) {
-      item.classList.add('badge-selected');
+// Funzione per ottenere statistiche locali (da SessionStorage)
+function getLocalStats() {
+  try {
+    const userData = JSON.parse(sessionStorage.getItem('user'));
+    if (userData && userData.stats) {
+      return userData.stats;
+    }
+    
+    // Se non ci sono statistiche, crea una struttura di base
+    return {
+      totalGames: 0,
+      highestMultiplier: 0,
+      wins: 0
+    };
+  } catch (error) {
+    console.error('Errore nel recupero delle statistiche locali:', error);
+    return null;
+  }
+}
+
+// Funzione per aggiornare la visualizzazione delle statistiche
+function updateStatsDisplay(stats) {
+  document.getElementById('total-games').textContent = stats.totalGames || 0;
+  document.getElementById(
+    'highest-multiplier'
+  ).textContent = `${(stats.highestMultiplier || 0).toFixed(2)}x`;
+  document.getElementById('games-won').textContent = stats.wins || 0;
+}
+
+// Funzione per caricare i badge nella UI
+async function loadBadgesUI(userBadges = [], selectedBadgeId, userId) {
+  const badgesList = document.getElementById('badges-list');
+  if (!badgesList) return;
+  
+  badgesList.innerHTML = '';
+  
+  console.log("Caricamento badge:", userBadges, "Badge selezionato:", selectedBadgeId);
+  
+  // Se userBadges è undefined, inizializziamo con il badge di default
+  if (!userBadges || userBadges.length === 0) {
+    try {
+      const initializedBadges = await badgeManager.initializeUserBadges(userId);
+      userBadges = initializedBadges || ["season1-badge"];
+      selectedBadgeId = selectedBadgeId || "season1-badge";
+      console.log("Badge inizializzati:", userBadges);
+    } catch (error) {
+      console.error("Errore nell'inizializzazione dei badge:", error);
+      userBadges = ["season1-badge"];
+    }
+  }
+  
+  // Ottieni tutte le informazioni dei badge disponibili
+  const allBadges = badgeManager.getAllBadges();
+  
+  // Crea il layout con tre righe di badge
+  const badgeRows = document.createElement('div');
+  badgeRows.className = 'badge-rows';
+  
+  // Prima riga: Season Badge
+  const seasonRow = document.createElement('div');
+  seasonRow.className = 'badge-row season-row';
+  
+  // Seconda riga: Prima serie di 5 badge
+  const firstRow = document.createElement('div');
+  firstRow.className = 'badge-row';
+  
+  // Terza riga: Seconda serie di 5 badge
+  const secondRow = document.createElement('div');
+  secondRow.className = 'badge-row';
+  
+  // Categorizza i badge per righe
+  Object.values(allBadges).forEach(badge => {
+    const isUnlocked = userBadges.includes(badge.id);
+    const isSelected = selectedBadgeId === badge.id;
+    
+    const badgeItem = document.createElement('div');
+    badgeItem.className = `badge-item ${isUnlocked ? '' : 'badge-locked'} ${isSelected ? 'selected badge-selected' : ''}`;
+    badgeItem.dataset.badgeId = badge.id;
+    
+    // Crea l'icona del badge
+    const badgeIcon = document.createElement('div');
+    badgeIcon.className = 'badge-icon';
+    
+    // Aggiungi l'immagine del badge
+    const badgeImage = document.createElement('img');
+    badgeImage.src = badge.image;
+    badgeImage.alt = badge.name;
+    badgeImage.onerror = () => {
+      console.warn("Errore nel caricamento dell'immagine badge:", badge.image);
+      // Fallback a un'immagine predefinita o a un placeholder
+      badgeImage.src = 'asset/images/badges/default-badge.png';
+    };
+    badgeIcon.appendChild(badgeImage);
+    
+    // Crea il nome del badge
+    const badgeName = document.createElement('div');
+    badgeName.className = 'badge-name';
+    badgeName.textContent = badge.name;
+    
+    // Crea tooltip per mostrare i requisiti del badge
+    const badgeTooltip = document.createElement('div');
+    badgeTooltip.className = 'badge-tooltip';
+    badgeTooltip.textContent = isUnlocked ? 
+      `Badge sbloccato: ${badge.description}` : 
+      `Requisito: ${badge.requirement}`;
+      
+    // Aggiungi freccia al tooltip
+    const tooltipArrow = document.createElement('div');
+    tooltipArrow.className = 'tooltip-arrow';
+    badgeTooltip.appendChild(tooltipArrow);
+    
+    badgeItem.appendChild(badgeIcon);
+    badgeItem.appendChild(badgeName);
+    badgeItem.appendChild(badgeTooltip);
+    
+    // Gestisci il tooltip al passaggio del mouse
+    badgeItem.addEventListener('mouseenter', () => {
+      badgeTooltip.style.display = 'block';
+      // Verifica se il tooltip si trova fuori dalla schermata ed eventualmente riposizionalo
+      const rect = badgeTooltip.getBoundingClientRect();
+      if (rect.top < 0) {
+        badgeTooltip.style.top = '80px';
+        badgeTooltip.style.bottom = 'auto';
+        
+        // Modifica anche la freccia per puntare verso l'alto
+        const arrow = badgeTooltip.querySelector('.tooltip-arrow');
+        if (arrow) {
+          arrow.style.top = '-8px';
+          arrow.style.bottom = 'auto';
+          arrow.style.borderBottom = '8px solid rgba(24, 25, 37, 0.9)';
+          arrow.style.borderTop = 'none';
+        }
+      }
+    });
+    
+    badgeItem.addEventListener('mouseleave', () => {
+      badgeTooltip.style.display = 'none';
+    });
+    
+    // Aggiungi event listener per selezionare il badge solo se è sbloccato
+    if (isUnlocked) {
+      badgeItem.addEventListener('click', () => selectBadge(badge.id, userId));
+    }
+    
+    // Aggiungi il badge alla riga corrispondente
+    if (badge.id === "season1-badge") {
+      seasonRow.appendChild(badgeItem);
+    } else if (["ryanair-badge", "easyjet-badge", "alitalia-badge", "vueling-badge", "wizz-badge"].includes(badge.id)) {
+      firstRow.appendChild(badgeItem);
+    } else {
+      secondRow.appendChild(badgeItem);
     }
   });
+  
+  // Aggiungi le righe al contenitore principale
+  badgeRows.appendChild(seasonRow);
+  badgeRows.appendChild(firstRow);
+  badgeRows.appendChild(secondRow);
+  badgesList.appendChild(badgeRows);
+  
+  // Aggiorna anche il badge selezionato nel display
+  updateSelectedBadgeDisplay(selectedBadgeId);
+}
 
-  // Get badge info
-  const badgeIcon = document.querySelector(
-    `.badge-item[data-badge-id="${badgeId}"] .badge-icon`
-  ).textContent;
-  const badgeName = document.querySelector(
-    `.badge-item[data-badge-id="${badgeId}"] .badge-name`
-  ).textContent;
+// Aggiorna il badge mostrato nell'intestazione del profilo
+function updateSelectedBadgeDisplay(badgeId) {
+  const badgeInfo = badgeManager.getBadgeInfo(badgeId);
+  if (!badgeInfo) {
+    console.warn("Badge info non trovate per:", badgeId);
+    return;
+  }
+  
+  console.log("Aggiornamento badge selezionato:", badgeId, badgeInfo);
+  
+  // Aggiorna il testo del badge nell'intestazione
+  const selectedBadgeElement = document.getElementById('selected-badge');
+  if (selectedBadgeElement) {
+    selectedBadgeElement.innerHTML = '';
+    
+    // Crea l'immagine del badge
+    const badgeImage = document.createElement('img');
+    badgeImage.src = badgeInfo.image;
+    badgeImage.alt = badgeInfo.name;
+    badgeImage.className = 'selected-badge-img';
+    badgeImage.style.width = '24px';
+    badgeImage.style.height = '24px';
+    badgeImage.style.marginRight = '8px';
+    badgeImage.style.borderRadius = '50%';
+    badgeImage.onerror = () => {
+      console.warn("Errore nel caricamento dell'immagine badge:", badgeInfo.image);
+      badgeImage.src = 'asset/images/badges/default-badge.png';
+    };
+    
+    selectedBadgeElement.appendChild(badgeImage);
+    selectedBadgeElement.appendChild(document.createTextNode(badgeInfo.name));
+  } else {
+    console.warn("Elemento selected-badge non trovato");
+  }
+  
+  // Aggiorna anche il badge nella lobby e nell'UI
+  const selectedBadgeIcon = document.getElementById('selected-badge-icon');
+  if (selectedBadgeIcon) {
+    selectedBadgeIcon.src = badgeInfo.image;
+    selectedBadgeIcon.onerror = () => {
+      console.warn("Errore nel caricamento dell'immagine badge:", badgeInfo.image);
+      selectedBadgeIcon.src = 'asset/images/badges/default-badge.png';
+    };
+  } else {
+    console.warn("Elemento selected-badge-icon non trovato");
+  }
+}
 
-  // Update selected badge display
-  document.getElementById(
-    'selected-badge'
-  ).textContent = `${badgeIcon} ${badgeName}`;
+// Funzione per selezionare un badge
+async function selectBadge(badgeId, userId) {
+  try {
+    // Aggiorna il badge selezionato in Firebase
+    await badgeManager.selectBadge(userId, badgeId);
+    
+    // Aggiorna l'UI
+    document.querySelectorAll('.badge-item').forEach((item) => {
+      item.classList.remove('selected', 'badge-selected');
+      if (item.dataset.badgeId === badgeId) {
+        item.classList.add('selected', 'badge-selected');
+      }
+    });
+    
+    // Aggiorna il badge mostrato nell'intestazione
+    updateSelectedBadgeDisplay(badgeId);
+    
+    // Aggiorna anche i dati dell'utente nella sessione
+    const userData = JSON.parse(sessionStorage.getItem('user'));
+    if (userData) {
+      userData.selectedBadge = badgeId;
+      sessionStorage.setItem('user', JSON.stringify(userData));
+    }
+    
+    console.log('Badge selezionato aggiornato:', badgeId);
+  } catch (error) {
+    console.error('Errore nella selezione del badge:', error);
+  }
 }
 
 // Funzione per aprire il modal di modifica username
@@ -233,7 +448,7 @@ function closeEditUsernameModal() {
 }
 
 // Funzione per salvare il nuovo username
-function saveUsername() {
+async function saveUsername() {
   const newUsernameInput = document.getElementById('new-username');
   const newUsername = newUsernameInput.value.trim();
   
@@ -246,38 +461,67 @@ function saveUsername() {
   const user = getCurrentUser();
   if (!user) return;
   
-  // Aggiorna lo username nell'utente corrente (questa è una simulazione)
-  // In una vera app, qui si aggiornerebbero i dati su Firebase
-  const userData = JSON.parse(sessionStorage.getItem('user'));
-  if (userData) {
-    userData.username = newUsername;
-    sessionStorage.setItem('user', JSON.stringify(userData));
+  // Prima prova a verificare la disponibilità dell'username
+  try {
+    // Importa la funzione isUsernameAvailable e updateUsername
+    const { isUsernameAvailable, updateUsername } = await import('../js/firebaseConfig.js');
     
-    // Aggiorna anche nel localStorage se necessario
-    if (userData.id) {
-      localStorage.setItem('username_' + userData.id, newUsername);
+    // Verifica se l'username è già in uso (controlla solo se è diverso da quello attuale)
+    if (user.username !== newUsername) {
+      const isAvailable = await isUsernameAvailable(newUsername);
+      if (!isAvailable) {
+        alert('Username già in uso. Scegline un altro.');
+        return;
+      }
+      
+      // Aggiorna l'username in Firebase
+      const result = await updateUsername(user.uid || user.id, user.username, newUsername);
+      if (!result.success) {
+        alert(result.error || 'Errore nell\'aggiornamento dell\'username');
+        return;
+      }
     }
+    
+    // Aggiorna lo username nell'utente corrente
+    const userData = JSON.parse(sessionStorage.getItem('user'));
+    if (userData) {
+      userData.username = newUsername;
+      sessionStorage.setItem('user', JSON.stringify(userData));
+      
+      // Aggiorna anche nel localStorage se necessario
+      if (userData.id) {
+        localStorage.setItem('username_' + userData.id, newUsername);
+      }
+    }
+    
+    // Aggiorna tutti gli elementi UI che mostrano l'username
+    document.querySelectorAll('.profile-username span').forEach(element => {
+      element.textContent = newUsername;
+    });
+    
+    // Aggiorna anche l'username nella lobby se visibile
+    const lobbyUsernameDisplay = document.getElementById('username-display');
+    if (lobbyUsernameDisplay) {
+      lobbyUsernameDisplay.textContent = newUsername;
+    }
+    
+    // Aggiorna qualsiasi elemento con ID profile-username
+    const profileUsernameElement = document.getElementById('profile-username');
+    if (profileUsernameElement && profileUsernameElement.querySelector('span')) {
+      profileUsernameElement.querySelector('span').textContent = newUsername;
+    }
+    
+    const profileTabUsername = document.getElementById('profile-tab-username');
+    if (profileTabUsername) {
+      profileTabUsername.textContent = newUsername;
+    }
+    
+    // Chiudi il modal
+    closeEditUsernameModal();
+  } catch (error) {
+    console.error('Errore nell\'aggiornamento dell\'username:', error);
+    alert('Si è verificato un errore. Riprova più tardi.');
   }
-  
-  // Aggiorna tutti gli elementi UI che mostrano l'username
-  document.querySelectorAll('.profile-username span').forEach(element => {
-    element.textContent = newUsername;
-  });
-  
-  // Aggiorna anche l'username nella lobby se visibile
-  const lobbyUsernameDisplay = document.getElementById('username-display');
-  if (lobbyUsernameDisplay) {
-    lobbyUsernameDisplay.textContent = newUsername;
-  }
-  
-  // Aggiorna qualsiasi elemento con ID profile-username
-  const profileUsernameElement = document.getElementById('profile-username');
-  if (profileUsernameElement && profileUsernameElement.querySelector('span')) {
-    profileUsernameElement.querySelector('span').textContent = newUsername;
-  }
-  
-  // Chiudi il modal
-  closeEditUsernameModal();
 }
 
 export { setupProfileListeners };

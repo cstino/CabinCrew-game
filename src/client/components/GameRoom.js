@@ -1,8 +1,10 @@
 // src/client/components/GameRoom.js
 import { showScreen } from '../main.js';
 import { getCurrentUser } from './Auth.js';
+import badgeManager from '../js/badgeManager.js';
+import { processGameResults } from './Gameplay.js';
 
-function setupLobbyListeners(socket) {
+async function setupLobbyListeners(socket) {
   const createRoomButton = document.getElementById('create-room-button');
   const joinRoomButton = document.getElementById('join-room-button');
   const leaveRoomButton = document.getElementById('leave-room-button');
@@ -14,7 +16,7 @@ function setupLobbyListeners(socket) {
     const roomCode = document.getElementById('room-code').value.trim();
     const initialCredits = parseFloat(document.getElementById('initial-credits').value);
     const roundCount = parseInt(document.getElementById('round-count').value);
-    const enableBonuses = document.getElementById('enable-bonuses').checked;
+    const enableBonuses = document.getElementById('enable-bonuses')?.checked || false;
     
     if (!roomName || !roomCode) {
       alert('Please fill in room name and code');
@@ -53,7 +55,7 @@ function setupLobbyListeners(socket) {
     // Join the room
     socket.emit('joinRoom', {
       roomCode,
-      username: getCurrentUser().username
+      userData: getCurrentUser()
     });
   });
   
@@ -62,12 +64,29 @@ function setupLobbyListeners(socket) {
     showScreen('lobby-screen');
   });
   
-  profileButton.addEventListener('click', () => {
+  profileButton?.addEventListener('click', () => {
     showScreen('profile-screen');
   });
   
-  backFromProfileButton.addEventListener('click', () => {
+  backFromProfileButton?.addEventListener('click', () => {
     showScreen('lobby-screen');
+  });
+  
+  // Listen for game results to update badges
+  socket.on('gameOver', async (data) => {
+    const user = getCurrentUser();
+    if (!user) return;
+    
+    // If the user is the winner, update their statistics
+    const winner = data.players?.find(p => p.isWinner && (p.id === user.uid || p.id === user.id));
+    if (winner) {
+      try {
+        // Trigger badge processing
+        await processGameResults();
+      } catch (error) {
+        console.error('Error processing game results for badges:', error);
+      }
+    }
   });
 }
 
@@ -77,9 +96,22 @@ function updateRoomInfo(room) {
   document.getElementById('room-code-display').textContent = `Code: ${room.roomCode}`;
 }
 
-function updatePlayersList(players) {
+async function updatePlayersList(players) {
   const playersContainer = document.getElementById('players-container');
   playersContainer.innerHTML = '';
+  
+  const user = getCurrentUser();
+  let userBadges = [];
+  
+  // Load badge information for the current user
+  if (user) {
+    try {
+      const badgeData = await badgeManager.getUserBadges(user.uid || user.id);
+      userBadges = badgeData.badges || [];
+    } catch (error) {
+      console.error('Error loading user badges:', error);
+    }
+  }
   
   players.forEach(player => {
     const playerItem = document.createElement('div');
@@ -90,7 +122,24 @@ function updatePlayersList(players) {
     
     const playerBadge = document.createElement('div');
     playerBadge.className = 'player-badge';
-    // Badge content would go here
+    
+    // If this player is the current user, show their selected badge
+    if (user && (player.id === user.uid || player.id === user.id) && player.selectedBadge) {
+      const badgeImg = document.createElement('img');
+      const badgeInfo = badgeManager.getBadgeInfo(player.selectedBadge);
+      
+      if (badgeInfo) {
+        badgeImg.src = badgeInfo.image;
+        badgeImg.alt = badgeInfo.name;
+        playerBadge.appendChild(badgeImg);
+      } else {
+        // Default icon if no badge selected
+        playerBadge.textContent = '👤';
+      }
+    } else {
+      // Default icon for other players
+      playerBadge.textContent = '👤';
+    }
     
     const playerUsername = document.createElement('span');
     playerUsername.textContent = player.username;
@@ -132,9 +181,36 @@ function showResults(results, crashPoint) {
   const resultsList = document.getElementById('results-list');
   resultsList.innerHTML = '';
   
+  const user = getCurrentUser();
+  let currentUserResult = null;
+  
+  // First pass: determine if the current user is the winner
+  if (user) {
+    currentUserResult = results.find(r => r.id === user.uid || r.id === user.id);
+    
+    // If we found a result for this user and they have the highest multiplier, mark them as winner
+    if (currentUserResult) {
+      const highestMultiplier = Math.max(...results.map(r => r.multiplier));
+      if (currentUserResult.multiplier === highestMultiplier) {
+        currentUserResult.isWinner = true;
+      }
+    }
+  }
+  
+  // Second pass: show all results
   results.forEach(result => {
     const resultItem = document.createElement('div');
     resultItem.className = 'result-item';
+    
+    // Highlight current user's result
+    if (user && (result.id === user.uid || result.id === user.id)) {
+      resultItem.classList.add('current-user-result');
+    }
+    
+    // Highlight winner
+    if (result.isWinner) {
+      resultItem.classList.add('winner-result');
+    }
     
     const playerInfo = document.createElement('div');
     playerInfo.className = 'player-info';
@@ -171,6 +247,11 @@ function showResults(results, crashPoint) {
     
     resultsList.appendChild(resultItem);
   });
+  
+  // Update badges if the user won
+  if (currentUserResult && currentUserResult.isWinner) {
+    processGameResults();
+  }
 }
 
 function hideResults() {
