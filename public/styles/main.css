@@ -1613,6 +1613,13 @@ input::placeholder {
   object-fit: cover;
 }
 
+/* Quando la game room è visibile, nascondiamo il video di sfondo */
 #game-room-screen:not(.hidden) ~ .background-video-container {
   display: none;
+}
+
+/* Assicuriamoci che il contenuto della game room sia sempre visibile */
+#game-room-screen {
+  z-index: 10;
+  position: relative;
 }

@@ -13,6 +13,30 @@
       <source src="asset/video/airplane2.mp4" type="video/mp4">
     </video>
   </div>
+  <script>
+    // Nascondi il video quando si apre la game room
+    document.addEventListener('DOMContentLoaded', function() {
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.attributeName === 'class') {
+            const gameRoom = document.getElementById('game-room-screen');
+            const videoContainer = document.querySelector('.background-video-container');
+            
+            if (gameRoom && !gameRoom.classList.contains('hidden')) {
+              videoContainer.style.display = 'none';
+            } else {
+              videoContainer.style.display = 'block';
+            }
+          }
+        });
+      });
+      
+      const gameRoom = document.getElementById('game-room-screen');
+      if (gameRoom) {
+        observer.observe(gameRoom, { attributes: true });
+      }
+    });
+  </script>
   <div id="app">
     <!-- Auth Screen -->
     <div id="auth-screen" class="screen">
