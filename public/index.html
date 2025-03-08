@@ -186,7 +186,7 @@
     </div>
     
     <!-- Game Room Screen -->
-<div <div id="game-room-screen" class="screen hidden">
+<div id="game-room-screen" class="screen hidden">
   <div class="aviator-container">
     <!-- Header con info stanza e moltiplicatori precedenti -->
     <div class="room-header">
@@ -1115,90 +1115,7 @@ async function selectBadge(badgeId) {
     </div>
   </div>
 </div>
-<script>
-  // Script per forzare la corretta visualizzazione della game room
-  document.addEventListener('DOMContentLoaded', function() {
-    // Pulsante di debug migliorato
-    const debugBtn = document.createElement('button');
-    debugBtn.textContent = 'Test Game Room';
-    debugBtn.style.position = 'fixed';
-    debugBtn.style.bottom = '10px';
-    debugBtn.style.left = '10px';
-    debugBtn.style.zIndex = '9999';
-    debugBtn.style.padding = '10px';
-    debugBtn.style.backgroundColor = '#4361ee';
-    debugBtn.style.color = '#fff';
-    debugBtn.style.border = 'none';
-    debugBtn.style.borderRadius = '5px';
-    
-    debugBtn.addEventListener('click', function() {
-      // Reset CSS completo per la game room
-      const gameRoom = document.getElementById('game-room-screen');
-      
-      // Reset dello stile base per la game room
-      gameRoom.style.position = 'relative';
-      gameRoom.style.top = 'auto';
-      gameRoom.style.left = 'auto';
-      gameRoom.style.width = '100%';
-      gameRoom.style.height = 'auto';
-      gameRoom.style.minHeight = '100vh';
-      gameRoom.style.backgroundColor = '#1a1b26';
-      gameRoom.style.display = 'block';
-      gameRoom.style.zIndex = '10';
-      gameRoom.style.overflow = 'auto';
-      gameRoom.style.alignItems = 'normal';
-      gameRoom.style.justifyContent = 'normal';
-      
-      // Reset dello stile per il container
-      const container = gameRoom.querySelector('.container');
-      container.style.backgroundColor = 'transparent';
-      container.style.display = 'block';
-      container.style.width = '100%';
-      container.style.maxWidth = '1200px';
-      container.style.margin = '0 auto';
-      container.style.padding = '20px';
-      container.style.boxShadow = 'none';
-      
-      // Reset stile per game-container
-      const gameContainer = gameRoom.querySelector('.game-container');
-      gameContainer.style.display = 'grid';
-      gameContainer.style.gridTemplateColumns = '3fr 1fr';
-      gameContainer.style.gap = '20px';
-      gameContainer.style.marginBottom = '20px';
-      
-      // Reset stile per game-main
-      const gameMain = gameRoom.querySelector('.game-main');
-      gameMain.style.display = 'flex';
-      gameMain.style.flexDirection = 'column';
-      gameMain.style.gap = '20px';
-      
-      // Reset stile per game-sidebar
-      const gameSidebar = gameRoom.querySelector('.game-sidebar');
-      gameSidebar.style.display = 'flex';
-      gameSidebar.style.flexDirection = 'column';
-      gameSidebar.style.gap = '20px';
-      
-      // Nascondi tutte le schermate
-      document.querySelectorAll('.screen').forEach(screen => {
-        screen.classList.add('hidden');
-      });
-      
-      // Mostra la game room
-      gameRoom.classList.remove('hidden');
-      
-      // Nascondi il video esplicitamente
-      const videoContainer = document.querySelector('.background-video-container');
-      if (videoContainer) {
-        videoContainer.style.display = 'none';
-        videoContainer.style.zIndex = '-1';
-      }
-      
-      console.log('Game room mostrata e stili reimpostati');
-    });
-    
-    document.body.appendChild(debugBtn);
-  });
-  </script>
+
   <script>
     // Script per l'animazione dell'aereo e del moltiplicatore
     document.addEventListener('DOMContentLoaded', function() {
@@ -1268,6 +1185,44 @@ async function selectBadge(badgeId) {
         observer.observe(gameRoom, { attributes: true });
       }
     });
+    </script>
+    <script src="fix-game-room.js"></script>
+    <script src="debug-game.js"></script>
+
+    <script>
+      // Inizializza correttamente la game room
+      document.addEventListener('DOMContentLoaded', function() {
+        // Corregge i problemi di visualizzazione della game room
+        const socket = io();
+        
+        // Evento di creazione stanza
+        socket.on('roomCreated', function(room) {
+          // Rimuovi classe hidden
+          document.getElementById('game-room-screen').classList.remove('hidden');
+          
+          // Assicurati che il video di background sia nascosto
+          document.querySelector('.background-video-container').style.display = 'none';
+          
+          // Imposta i dati della stanza
+          document.getElementById('room-title').textContent = room.name;
+          document.getElementById('room-code-display').textContent = 'Code: ' + room.code;
+          document.getElementById('round-info').textContent = 'Round 0/' + room.roundCount;
+        });
+        
+        // Lo stesso per l'evento join room
+        socket.on('roomJoined', function(room) {
+          // Rimuovi classe hidden
+          document.getElementById('game-room-screen').classList.remove('hidden');
+          
+          // Assicurati che il video di background sia nascosto
+          document.querySelector('.background-video-container').style.display = 'none';
+          
+          // Imposta i dati della stanza
+          document.getElementById('room-title').textContent = room.name;
+          document.getElementById('room-code-display').textContent = 'Code: ' + room.code;
+          document.getElementById('round-info').textContent = 'Round 0/' + room.roundCount;
+        });
+      });
     </script>
 </body>
 </html>
