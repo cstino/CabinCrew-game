@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CabinCrew</title>
   <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/aviator-game.css">
   <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
 </head>
 <body>
@@ -185,76 +186,105 @@
     </div>
     
     <!-- Game Room Screen -->
-<div id="game-room-screen" class="screen hidden">
-  <div class="container">
-    <!-- Header della stanza -->
+<div <div id="game-room-screen" class="screen hidden">
+  <div class="aviator-container">
+    <!-- Header con info stanza e moltiplicatori precedenti -->
     <div class="room-header">
-      <h1 id="room-title">Room Name</h1>
       <div class="room-info">
-        <span id="round-info">Round 0/5</span>
-        <span id="room-code-display">Code: 0000</span>
+        <h2 id="room-title">Room Name</h2>
+        <div class="room-details">
+          <span id="round-info">Round 0/5</span>
+          <span id="room-code-display">Code: 0000</span>
+        </div>
+      </div>
+      <div class="previous-multipliers">
+        <div class="prev-mult">1.52x</div>
+        <div class="prev-mult">2.72x</div>
+        <div class="prev-mult high">10.35x</div>
+        <div class="prev-mult">1.12x</div>
+        <div class="prev-mult">4.23x</div>
+        <div class="prev-mult">1.89x</div>
+        <div class="prev-mult medium">5.64x</div>
+        <div class="prev-mult">1.22x</div>
       </div>
     </div>
-    
-    <!-- Container principale del gioco -->
-    <div class="game-container">
-      <!-- Colonna principale -->
-      <div class="game-main">
-        <!-- Moltiplicatore -->
-        <div class="multiplier-container">
-          <div id="multiplier-display">1.00x</div>
-          <div id="multiplier-animation"></div>
+
+    <!-- Layout principale a due colonne -->
+    <div class="game-layout">
+      <!-- Colonna sinistra -->
+      <div class="left-column">
+        <!-- Sezione scommesse attuali -->
+        <div class="bets-section">
+          <div class="section-header">
+            <h3>Scommesse Round</h3>
+          </div>
+          <div class="bets-list" id="current-bets">
+            <!-- Le scommesse verranno popolate dinamicamente -->
+          </div>
         </div>
         
-        <!-- Crediti giocatore -->
-        <div id="player-credits" class="player-credits">
-          Your Credits: <span id="credit-amount">10.00</span>
+        <!-- Classifica generale -->
+        <div class="rankings-section">
+          <div class="section-header">
+            <h3>Classifica</h3>
+          </div>
+          <div class="rankings-list" id="player-rankings">
+            <!-- La classifica verrà popolata dinamicamente -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Area centrale del gioco -->
+      <div class="game-area">
+        <!-- Visualizzazione del moltiplicatore -->
+        <div class="multiplier-display">
+          <div class="multiplier-value" id="multiplier-display">1.00x</div>
+          <div class="airplane-animation">
+            <div class="airplane-container">
+              <div class="airplane">✈️</div>
+              <div class="trajectory"></div>
+            </div>
+          </div>
         </div>
         
         <!-- Controlli scommessa -->
         <div class="bet-controls">
-          <label for="bet-amount">Puntata:</label>
-          <input type="number" id="bet-amount" min="0.10" max="100" step="0.10" value="0.10">
-          <button id="sit-out-button" class="secondary-button">Salta round</button>
-        </div>
-        
-        <!-- Azioni giocatore -->
-        <div class="player-actions">
-          <button id="ready-button" class="action-button">Ready</button>
-          <button id="eject-button" class="action-button primary">EJECT</button>
-        </div>
-        
-        <!-- Status del gioco -->
-        <div class="game-status">
-          <div id="status-message">Waiting for players to join...</div>
-          <div id="countdown-timer" class="hidden">Next round in <span id="timer-value">10</span>s</div>
-        </div>
-        
-        <!-- Risultati del round -->
-        <div class="results-container hidden" id="results-screen">
-          <h2>Round Results</h2>
-          <div id="crash-point"></div>
-          <div id="results-list"></div>
-        </div>
-      </div>
-      
-      <!-- Colonna laterale -->
-      <div class="game-sidebar">
-        <!-- Lista giocatori -->
-        <div class="player-list">
-          <h2>Players</h2>
-          <div id="players-container"></div>
+          <div class="bet-amount-controls">
+            <label for="bet-amount">Puntata:</label>
+            <div class="bet-input-group">
+              <button class="bet-btn decrease">-</button>
+              <input type="number" id="bet-amount" min="0" max="100" step="0.10" value="0.10">
+              <button class="bet-btn increase">+</button>
+            </div>
+          </div>
+          
+          <div class="bet-actions">
+            <button id="sit-out-button" class="secondary-button">Salta round</button>
+            <button id="ready-button" class="action-button">Ready</button>
+            <button id="eject-button" class="action-button primary">EJECT</button>
+          </div>
+          
+          <!-- Status del gioco -->
+          <div class="game-status">
+            <div id="status-message">Waiting for players to join...</div>
+            <div id="countdown-timer" class="hidden">Next round in <span id="timer-value">10</span>s</div>
+          </div>
         </div>
       </div>
     </div>
     
-    <!-- Footer della stanza -->
+    <!-- Footer con credits e pulsante uscita -->
     <div class="room-footer">
-      <button id="chat-button" class="secondary-button">Chat</button>
-      <button id="leave-room-button">Leave Room</button>
+      <div id="player-credits" class="player-credits">
+        Your Credits: <span id="credit-amount">10.00</span>
+      </div>
+      <div class="footer-actions">
+        <button id="chat-button" class="secondary-button">Chat</button>
+        <button id="leave-room-button">Leave Room</button>
+      </div>
     </div>
     
-    <!-- Chat container (fuori dal layout a griglia) -->
+    <!-- Container chat (nascosto per default) -->
     <div id="chat-container" class="hidden">
       <div id="chat-messages"></div>
       <div class="chat-input-container">
@@ -262,42 +292,15 @@
         <button id="send-message-button">Send</button>
       </div>
     </div>
+    
+    <!-- Risultati round (nascosto per default) -->
+    <div class="results-container hidden" id="results-screen">
+      <h2>Round Results</h2>
+      <div id="crash-point"></div>
+      <div id="results-list"></div>
+    </div>
   </div>
 </div>
-<script>
-  // Script di debug per game room
-  document.addEventListener('DOMContentLoaded', function() {
-    // Aggiungi un pulsante di test temporaneo
-    const debugBtn = document.createElement('button');
-    debugBtn.textContent = 'Test Game Room';
-    debugBtn.style.position = 'fixed';
-    debugBtn.style.bottom = '10px';
-    debugBtn.style.left = '10px';
-    debugBtn.style.zIndex = '9999';
-    debugBtn.style.padding = '10px';
-    debugBtn.style.backgroundColor = '#f00';
-    debugBtn.style.color = '#fff';
-    debugBtn.style.border = 'none';
-    debugBtn.style.borderRadius = '5px';
-    
-    debugBtn.addEventListener('click', function() {
-      // Nascondi tutte le schermate
-      document.querySelectorAll('.screen').forEach(screen => {
-        screen.classList.add('hidden');
-      });
-      
-      // Mostra la game room
-      document.getElementById('game-room-screen').classList.remove('hidden');
-      
-      // Nasconde il video esplicitamente
-      document.querySelector('.background-video-container').style.display = 'none';
-      
-      console.log('Game room mostrata via debug');
-    });
-    
-    document.body.appendChild(debugBtn);
-  });
-</script>
     
     <!-- Profile Screen -->
     <div id="profile-screen" class="screen hidden">
@@ -1112,5 +1115,159 @@ async function selectBadge(badgeId) {
     </div>
   </div>
 </div>
+<script>
+  // Script per forzare la corretta visualizzazione della game room
+  document.addEventListener('DOMContentLoaded', function() {
+    // Pulsante di debug migliorato
+    const debugBtn = document.createElement('button');
+    debugBtn.textContent = 'Test Game Room';
+    debugBtn.style.position = 'fixed';
+    debugBtn.style.bottom = '10px';
+    debugBtn.style.left = '10px';
+    debugBtn.style.zIndex = '9999';
+    debugBtn.style.padding = '10px';
+    debugBtn.style.backgroundColor = '#4361ee';
+    debugBtn.style.color = '#fff';
+    debugBtn.style.border = 'none';
+    debugBtn.style.borderRadius = '5px';
+    
+    debugBtn.addEventListener('click', function() {
+      // Reset CSS completo per la game room
+      const gameRoom = document.getElementById('game-room-screen');
+      
+      // Reset dello stile base per la game room
+      gameRoom.style.position = 'relative';
+      gameRoom.style.top = 'auto';
+      gameRoom.style.left = 'auto';
+      gameRoom.style.width = '100%';
+      gameRoom.style.height = 'auto';
+      gameRoom.style.minHeight = '100vh';
+      gameRoom.style.backgroundColor = '#1a1b26';
+      gameRoom.style.display = 'block';
+      gameRoom.style.zIndex = '10';
+      gameRoom.style.overflow = 'auto';
+      gameRoom.style.alignItems = 'normal';
+      gameRoom.style.justifyContent = 'normal';
+      
+      // Reset dello stile per il container
+      const container = gameRoom.querySelector('.container');
+      container.style.backgroundColor = 'transparent';
+      container.style.display = 'block';
+      container.style.width = '100%';
+      container.style.maxWidth = '1200px';
+      container.style.margin = '0 auto';
+      container.style.padding = '20px';
+      container.style.boxShadow = 'none';
+      
+      // Reset stile per game-container
+      const gameContainer = gameRoom.querySelector('.game-container');
+      gameContainer.style.display = 'grid';
+      gameContainer.style.gridTemplateColumns = '3fr 1fr';
+      gameContainer.style.gap = '20px';
+      gameContainer.style.marginBottom = '20px';
+      
+      // Reset stile per game-main
+      const gameMain = gameRoom.querySelector('.game-main');
+      gameMain.style.display = 'flex';
+      gameMain.style.flexDirection = 'column';
+      gameMain.style.gap = '20px';
+      
+      // Reset stile per game-sidebar
+      const gameSidebar = gameRoom.querySelector('.game-sidebar');
+      gameSidebar.style.display = 'flex';
+      gameSidebar.style.flexDirection = 'column';
+      gameSidebar.style.gap = '20px';
+      
+      // Nascondi tutte le schermate
+      document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.add('hidden');
+      });
+      
+      // Mostra la game room
+      gameRoom.classList.remove('hidden');
+      
+      // Nascondi il video esplicitamente
+      const videoContainer = document.querySelector('.background-video-container');
+      if (videoContainer) {
+        videoContainer.style.display = 'none';
+        videoContainer.style.zIndex = '-1';
+      }
+      
+      console.log('Game room mostrata e stili reimpostati');
+    });
+    
+    document.body.appendChild(debugBtn);
+  });
+  </script>
+  <script>
+    // Script per l'animazione dell'aereo e del moltiplicatore
+    document.addEventListener('DOMContentLoaded', function() {
+      // Funzione per aggiornare il moltiplicatore e l'animazione
+      function updateMultiplierDisplay(value) {
+        const multiplierElement = document.getElementById('multiplier-display');
+        const airplane = document.querySelector('.airplane');
+        const trajectory = document.querySelector('.trajectory');
+        
+        // Aggiorna il testo del moltiplicatore
+        multiplierElement.textContent = value.toFixed(2) + 'x';
+        
+        // Cambia colore in base al valore
+        multiplierElement.classList.remove('medium', 'high');
+        if (value >= 10) {
+          multiplierElement.classList.add('high');
+        } else if (value >= 2) {
+          multiplierElement.classList.add('medium');
+        }
+        
+        // Calcola la posizione dell'aereo (movimento esponenziale)
+        const progress = Math.min((value - 1) / 9, 1); // da 1x a 10x mappato da 0 a 1
+        const curveProgress = Math.pow(progress, 0.8); // funzione esponenziale per la curva
+        
+        // Posiziona l'aereo
+        const left = 10 + (curveProgress * 70); // da 10% a 80% orizzontalmente
+        const bottom = 10 + (curveProgress * 70); // da 10% a 80% verticalmente
+        
+        airplane.style.left = `${left}%`;
+        airplane.style.bottom = `${bottom}%`;
+        
+        // Aggiorna la traiettoria
+        trajectory.style.width = `${left - 10}%`;
+        trajectory.style.height = `${bottom - 10}%`;
+        trajectory.style.transform = `rotate(${Math.atan2(bottom - 10, left - 10) * (180 / Math.PI)}deg)`;
+      }
+      
+      // Testa l'animazione quando la game room diventa visibile
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.attributeName === 'class') {
+            const gameRoom = document.getElementById('game-room-screen');
+            if (gameRoom && !gameRoom.classList.contains('hidden')) {
+              // Inizializza il moltiplicatore
+              updateMultiplierDisplay(1.00);
+              
+              // Per test: simula la crescita del moltiplicatore
+              const testButton = document.getElementById('eject-button');
+              if (testButton) {
+                testButton.addEventListener('click', function() {
+                  // Simuliamo una crescita del moltiplicatore per testare l'animazione
+                  let value = 1.00;
+                  const interval = setInterval(() => {
+                    value += 0.05;
+                    updateMultiplierDisplay(value);
+                    if (value > 15) clearInterval(interval);
+                  }, 100);
+                });
+              }
+            }
+          }
+        });
+      });
+      
+      const gameRoom = document.getElementById('game-room-screen');
+      if (gameRoom) {
+        observer.observe(gameRoom, { attributes: true });
+      }
+    });
+    </script>
 </body>
 </html>

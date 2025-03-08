@@ -1,0 +1,424 @@
+/* Stile per la game room ispirata ad Aviator */
+.aviator-container {
+    width: 100%;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1a1b26 0%, #24283b 100%);
+    color: var(--text-light);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* HEADER E MOLTIPLICATORI PRECEDENTI */
+  .room-header {
+    margin-bottom: 20px;
+  }
+  
+  .room-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .room-info h2 {
+    font-size: 24px;
+    margin: 0;
+  }
+  
+  .room-details {
+    display: flex;
+    gap: 20px;
+  }
+  
+  .previous-multipliers {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    padding: 10px 0;
+  }
+  
+  .prev-mult {
+    background: rgba(67, 97, 238, 0.2);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-weight: bold;
+    color: #4361ee;
+  }
+  
+  .prev-mult.medium {
+    background: rgba(137, 59, 230, 0.2);
+    color: #893be6;
+  }
+  
+  .prev-mult.high {
+    background: rgba(232, 42, 160, 0.2);
+    color: #e82aa0;
+  }
+  
+  /* LAYOUT PRINCIPALE */
+  .game-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    flex-grow: 1;
+  }
+  
+  /* COLONNA SINISTRA */
+  .left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
+  }
+  
+  .bets-section, .rankings-section {
+    background: rgba(36, 40, 59, 0.7);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .section-header {
+    background: rgba(67, 97, 238, 0.2);
+    padding: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .section-header h3 {
+    margin: 0;
+    font-size: 18px;
+  }
+  
+  .bets-list, .rankings-list {
+    overflow-y: auto;
+    flex-grow: 1;
+  }
+  
+  /* STILI PER ELEMENTI DELLE LISTE */
+  .bet-item, .ranking-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .bet-item:last-child, .ranking-item:last-child {
+    border-bottom: none;
+  }
+  
+  .player-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .player-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(67, 97, 238, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .bet-info, .ranking-info {
+    font-weight: bold;
+  }
+  
+  .bet-multiplier {
+    color: #36e2ec;
+  }
+  
+  .bet-win {
+    color: #06d6a0;
+  }
+  
+  .bet-amount {
+    color: var(--accent-color);
+  }
+  
+  /* AREA CENTRALE DEL GIOCO */
+  .game-area {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .multiplier-display {
+    background: #111218;
+    border-radius: var(--border-radius);
+    height: 350px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    background-image: radial-gradient(circle at center, rgba(67, 97, 238, 0.1) 0%, transparent 70%);
+  }
+  
+  .multiplier-value {
+    font-size: 5rem;
+    font-weight: bold;
+    color: #36e2ec; /* Colore azzurro per valori < 2 */
+    text-shadow: 0 0 20px rgba(54, 226, 236, 0.4);
+    z-index: 2;
+    transition: color 0.3s;
+  }
+  
+  .multiplier-value.medium {
+    color: #893be6; /* Colore viola per valori 2-10 */
+    text-shadow: 0 0 20px rgba(137, 59, 230, 0.4);
+  }
+  
+  .multiplier-value.high {
+    color: #e82aa0; /* Colore magenta per valori > 10 */
+    text-shadow: 0 0 20px rgba(232, 42, 160, 0.4);
+  }
+  
+  /* ANIMAZIONE AEREO */
+  .airplane-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  
+  .airplane {
+    position: absolute;
+    bottom: 10%;
+    left: 10%;
+    font-size: 30px;
+    transform: rotate(45deg);
+    transition: all 0.1s linear;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+  }
+  
+  .trajectory {
+    position: absolute;
+    bottom: 10%;
+    left: 10%;
+    width: 1px;
+    height: 1px;
+    background: transparent;
+    transform-origin: bottom left;
+    box-shadow: 0 0 10px 1px rgba(255, 0, 0, 0.6);
+  }
+  
+  /* CONTROLLI SCOMMESSA */
+  .bet-controls {
+    background: rgba(36, 40, 59, 0.7);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .bet-amount-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .bet-input-group {
+    display: flex;
+    align-items: center;
+  }
+  
+  .bet-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(67, 97, 238, 0.2);
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background 0.2s;
+  }
+  
+  .bet-btn.decrease {
+    border-radius: 6px 0 0 6px;
+  }
+  
+  .bet-btn.increase {
+    border-radius: 0 6px 6px 0;
+  }
+  
+  .bet-btn:hover {
+    background: rgba(67, 97, 238, 0.4);
+  }
+  
+  #bet-amount {
+    width: 100px;
+    text-align: center;
+    margin: 0;
+    border-radius: 0;
+  }
+  
+  .bet-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+  }
+  
+  #eject-button {
+    background: linear-gradient(135deg, #ff6d00, #ff9e00);
+    animation: pulse 2s infinite;
+  }
+  
+  .game-status {
+    text-align: center;
+    margin-top: 10px;
+  }
+  
+  #countdown-timer {
+    font-weight: bold;
+    color: var(--accent-color);
+    animation: pulsate 1s infinite alternate;
+  }
+  
+  /* FOOTER */
+  .room-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    background: rgba(36, 40, 59, 0.7);
+    border-radius: var(--border-radius);
+    padding: 15px 20px;
+  }
+  
+  .player-credits {
+    font-size: 1.2rem;
+    font-weight: bold;
+  }
+  
+  #credit-amount {
+    color: var(--accent-color);
+  }
+  
+  .footer-actions {
+    display: flex;
+    gap: 15px;
+  }
+  
+  /* CHAT */
+  #chat-container {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    width: 300px;
+    height: 400px;
+    background: rgba(36, 40, 59, 0.9);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+  }
+  
+  #chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .chat-input-container {
+    padding: 10px;
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  #chat-input {
+    flex: 1;
+    margin: 0;
+  }
+  
+  /* RISULTATI */
+  .results-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(36, 40, 59, 0.95);
+    border-radius: var(--border-radius);
+    padding: 30px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    z-index: 200;
+    text-align: center;
+  }
+  
+  #crash-point {
+    font-size: 3rem;
+    margin: 20px 0;
+    color: var(--danger-color);
+  }
+  
+  #results-list {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  
+  /* RESPONSIVE */
+  @media (max-width: 992px) {
+    .game-layout {
+      grid-template-columns: 1fr;
+    }
+    
+    .left-column {
+      order: 2;
+      flex-direction: row;
+    }
+    
+    .bets-section, .rankings-section {
+      height: 300px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .left-column {
+      flex-direction: column;
+    }
+    
+    .room-info {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    
+    .bet-actions {
+      flex-direction: column;
+    }
+    
+    .bet-amount-controls {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .room-footer {
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .footer-actions {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
