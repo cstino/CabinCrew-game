@@ -705,20 +705,255 @@
     socket.on('roomCreated', (room) => {
       console.log('Stanza creata:', room);
       
-      // Passa alla schermata di gioco
-      document.getElementById('lobby-screen').classList.add('hidden');
-      document.getElementById('game-room-screen').classList.remove('hidden');
-      
-      // Aggiorna UI
-      document.getElementById('room-title').textContent = room.name;
-      document.getElementById('room-code-display').textContent = 'Code: ' + room.code;
-      document.getElementById('round-info').textContent = 'Round 0/' + room.roundCount;
-      document.getElementById('credit-amount').textContent = room.initialCredits;
+      // Sostituisci la game room con la versione funzionante
+      replaceGameRoom(room);
     });
     
     socket.on('roomError', (error) => {
       alert(error.message);
     });
+  }
+  
+  // Funzione per sostituire la game room con una versione funzionante
+  function replaceGameRoom(room) {
+    // Nascondi tutte le schermate
+    document.querySelectorAll('.screen').forEach(screen => {
+      screen.classList.add('hidden');
+    });
+    
+    // Nascondi il video di sfondo
+    const videoBackground = document.querySelector('.background-video-container');
+    if (videoBackground) {
+      videoBackground.style.display = 'none';
+    }
+    
+    // Rimuovi la game room esistente se presente
+    const existingGameRoom = document.getElementById('game-room-screen');
+    if (existingGameRoom) {
+      existingGameRoom.remove();
+    }
+    
+    // Crea la nuova game room con stili inline
+    const gameRoomHTML = `
+    <div id="game-room-screen" class="screen" style="display:block; position:relative; z-index:999; background-color:#1a1b26; min-height:100vh; width:100%; padding:20px;">
+      <div class="aviator-container" style="width:100%; height:100%;">
+        <!-- Header con info stanza e moltiplicatori precedenti -->
+        <div class="room-header" style="background-color:rgba(36,40,59,0.8); border-radius:12px; padding:20px; margin-bottom:20px;">
+          <div class="room-info" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h2 id="room-title" style="font-size:24px; margin:0; color:white;">${room.name || room.roomName || 'Game Room'}</h2>
+            <div class="room-details" style="display:flex; gap:20px; color:white;">
+              <span id="round-info">Round ${room.currentRound || 0}/${room.roundCount || 5}</span>
+              <span id="room-code-display">Code: ${room.code || room.roomCode || '0000'}</span>
+            </div>
+          </div>
+          <div class="previous-multipliers" style="display:flex; gap:15px; overflow-x:auto; padding:10px 0;">
+            <div class="prev-mult" style="background:rgba(67,97,238,0.2); border-radius:6px; padding:8px 12px; font-weight:bold; color:#4361ee;">1.52x</div>
+            <div class="prev-mult" style="background:rgba(67,97,238,0.2); border-radius:6px; padding:8px 12px; font-weight:bold; color:#4361ee;">2.72x</div>
+            <div class="prev-mult" style="background:rgba(232,42,160,0.2); border-radius:6px; padding:8px 12px; font-weight:bold; color:#e82aa0;">10.35x</div>
+            <div class="prev-mult" style="background:rgba(67,97,238,0.2); border-radius:6px; padding:8px 12px; font-weight:bold; color:#4361ee;">1.12x</div>
+            <div class="prev-mult" style="background:rgba(67,97,238,0.2); border-radius:6px; padding:8px 12px; font-weight:bold; color:#4361ee;">4.23x</div>
+          </div>
+        </div>
+
+        <!-- Layout principale a due colonne -->
+        <div class="game-layout" style="display:grid; grid-template-columns:300px 1fr; gap:20px; flex-grow:1;">
+          <!-- Colonna sinistra -->
+          <div class="left-column" style="display:flex; flex-direction:column; gap:20px; height:100%;">
+            <!-- Sezione scommesse attuali -->
+            <div class="bets-section" style="background:rgba(36,40,59,0.7); border-radius:12px; overflow:hidden; flex:1; display:flex; flex-direction:column;">
+              <div class="section-header" style="background:rgba(67,97,238,0.2); padding:15px; border-bottom:1px solid rgba(255,255,255,0.1);">
+                <h3 style="margin:0; font-size:18px; color:white;">Scommesse Round</h3>
+              </div>
+              <div class="bets-list" id="current-bets" style="overflow-y:auto; flex-grow:1; color:white; padding:10px;">
+                <!-- Scommesse di esempio -->
+                <div style="padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);">
+                  <div style="display:flex; justify-content:space-between;">
+                    <span>Giocatore 1</span>
+                    <span>0.5 credits</span>
+                  </div>
+                </div>
+                <div style="padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);">
+                  <div style="display:flex; justify-content:space-between;">
+                    <span>Giocatore 2</span>
+                    <span>1.0 credits</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Classifica generale -->
+            <div class="rankings-section" style="background:rgba(36,40,59,0.7); border-radius:12px; overflow:hidden; flex:1; display:flex; flex-direction:column;">
+              <div class="section-header" style="background:rgba(67,97,238,0.2); padding:15px; border-bottom:1px solid rgba(255,255,255,0.1);">
+                <h3 style="margin:0; font-size:18px; color:white;">Classifica</h3>
+              </div>
+              <div class="rankings-list" id="player-rankings" style="overflow-y:auto; flex-grow:1; color:white; padding:10px;">
+                <!-- Classifica di esempio -->
+                <div style="padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);">
+                  <div style="display:flex; justify-content:space-between;">
+                    <span>Giocatore 1</span>
+                    <span>10.0 credits</span>
+                  </div>
+                </div>
+                <div style="padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);">
+                  <div style="display:flex; justify-content:space-between;">
+                    <span>Giocatore 2</span>
+                    <span>8.5 credits</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Area centrale del gioco -->
+          <div class="game-area" style="display:flex; flex-direction:column; gap:20px;">
+            <!-- Visualizzazione del moltiplicatore -->
+            <div class="multiplier-display" style="background:#111218; border-radius:12px; height:350px; position:relative; overflow:hidden; display:flex; justify-content:center; align-items:center; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+              <div class="multiplier-value" id="multiplier-display" style="font-size:5rem; font-weight:bold; color:#36e2ec; text-shadow:0 0 20px rgba(54,226,236,0.4); z-index:2;">1.00x</div>
+              <div class="airplane-animation" style="position:relative; width:100%; height:100%;">
+                <div class="airplane-container" style="position:absolute; bottom:0; left:0; width:100%; height:100%; pointer-events:none;">
+                  <div class="airplane" style="position:absolute; bottom:10%; left:10%; font-size:30px; transform:rotate(45deg); transition:all 0.1s linear;">✈️</div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Controlli scommessa -->
+            <div class="bet-controls" style="background:rgba(36,40,59,0.7); border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:20px;">
+              <div class="bet-amount-controls" style="display:flex; align-items:center; gap:15px;">
+                <label for="bet-amount" style="color:white;">Puntata:</label>
+                <div class="bet-input-group" style="display:flex; align-items:center;">
+                  <button class="bet-btn decrease" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:rgba(67,97,238,0.2); border:none; color:white; cursor:pointer; font-size:18px; border-radius:6px 0 0 6px;">-</button>
+                  <input type="number" id="bet-amount" min="0" max="100" step="0.10" value="0.10" style="width:100px; text-align:center; margin:0; border-radius:0; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; padding:8px;">
+                  <button class="bet-btn increase" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:rgba(67,97,238,0.2); border:none; color:white; cursor:pointer; font-size:18px; border-radius:0 6px 6px 0;">+</button>
+                </div>
+              </div>
+              
+              <div class="bet-actions" style="display:flex; gap:15px; justify-content:center;">
+                <button id="sit-out-button" class="secondary-button" style="background:rgba(255,255,255,0.1); border:none; color:white; padding:12px 24px; border-radius:12px; cursor:pointer;">Salta round</button>
+                <button id="ready-button" class="action-button" style="background:linear-gradient(135deg,#4361ee,#3a56d4); border:none; color:white; padding:12px 24px; border-radius:12px; cursor:pointer; font-weight:bold;">Ready</button>
+                <button id="eject-button" class="action-button primary" style="background:linear-gradient(135deg,#ff9e00,#ff6d00); border:none; color:white; padding:12px 24px; border-radius:12px; cursor:pointer; font-weight:bold;">EJECT</button>
+              </div>
+              
+              <!-- Status del gioco -->
+              <div class="game-status" style="text-align:center;">
+                <div id="status-message" style="color:#36e2ec; font-weight:bold;">Waiting for players to join...</div>
+                <div id="countdown-timer" style="margin-top:10px; font-weight:bold; color:#ff9e00;">Next round in <span id="timer-value">10</span>s</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Footer con credits e pulsante uscita -->
+        <div class="room-footer" style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; background:rgba(36,40,59,0.7); border-radius:12px; padding:15px 20px;">
+          <div id="player-credits" class="player-credits" style="font-size:1.2rem; font-weight:bold; color:white;">
+            Your Credits: <span id="credit-amount" style="color:#ff9e00;">${room.initialCredits || '10.00'}</span>
+          </div>
+          <div class="footer-actions" style="display:flex; gap:15px;">
+            <button id="chat-button" class="secondary-button" style="background:rgba(255,255,255,0.1); border:none; color:white; padding:12px 24px; border-radius:12px; cursor:pointer;">Chat</button>
+            <button id="leave-room-button" style="background:linear-gradient(135deg,#4361ee,#3a56d4); border:none; color:white; padding:12px 24px; border-radius:12px; cursor:pointer;">Leave Room</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    `;
+    
+    // Aggiungi la game room al DOM
+    const app = document.getElementById('app');
+    if (app) {
+      app.insertAdjacentHTML('beforeend', gameRoomHTML);
+    } else {
+      document.body.insertAdjacentHTML('beforeend', gameRoomHTML);
+    }
+    
+    // Inizializza i pulsanti
+    initGameRoomButtons();
+    
+    console.log('Game room sostituita e inizializzata con successo');
+  }
+  
+  // Funzione per inizializzare i pulsanti della game room
+  function initGameRoomButtons() {
+    // Configurazione pulsante leave room
+    const leaveButton = document.getElementById('leave-room-button');
+    if (leaveButton) {
+      leaveButton.addEventListener('click', function() {
+        // Nascondi la game room
+        const gameRoom = document.getElementById('game-room-screen');
+        if (gameRoom) {
+          gameRoom.classList.add('hidden');
+        }
+        
+        // Mostra la lobby
+        document.getElementById('lobby-screen').classList.remove('hidden');
+        
+        // Mostra il video di background
+        const videoBackground = document.querySelector('.background-video-container');
+        if (videoBackground) {
+          videoBackground.style.display = 'block';
+        }
+        
+        console.log('Tornato alla lobby');
+      });
+    }
+    
+    // Configurazione pulsanti di scommessa
+    const decreaseBtn = document.querySelector('.bet-btn.decrease');
+    const increaseBtn = document.querySelector('.bet-btn.increase');
+    const betAmountInput = document.getElementById('bet-amount');
+    
+    if (decreaseBtn && betAmountInput) {
+      decreaseBtn.addEventListener('click', function() {
+        let value = parseFloat(betAmountInput.value) || 0;
+        value = Math.max(0, value - 0.1);
+        betAmountInput.value = value.toFixed(2);
+      });
+    }
+    
+    if (increaseBtn && betAmountInput) {
+      increaseBtn.addEventListener('click', function() {
+        let value = parseFloat(betAmountInput.value) || 0;
+        value = Math.min(100, value + 0.1);
+        betAmountInput.value = value.toFixed(2);
+      });
+    }
+    
+    // Configurazione pulsante eject
+    const ejectButton = document.getElementById('eject-button');
+    if (ejectButton) {
+      ejectButton.addEventListener('click', function() {
+        simulateMultiplierAnimation();
+      });
+    }
+  }
+  
+  // Funzione per simulare l'animazione del moltiplicatore
+  function simulateMultiplierAnimation() {
+    let value = 1.00;
+    const multiplierDisplay = document.getElementById('multiplier-display');
+    const airplane = document.querySelector('.airplane');
+    
+    if (!multiplierDisplay || !airplane) return;
+    
+    const interval = setInterval(() => {
+      value += 0.05;
+      multiplierDisplay.textContent = value.toFixed(2) + 'x';
+      
+      // Cambia colore in base al valore
+      if (value >= 10) {
+        multiplierDisplay.style.color = '#e82aa0';
+      } else if (value >= 2) {
+        multiplierDisplay.style.color = '#893be6';
+      }
+      
+      // Aggiorna la posizione dell'aereo
+      const progress = Math.min((value - 1) / 9, 1);
+      const left = 10 + (progress * 70);
+      const bottom = 10 + (progress * 70);
+      
+      airplane.style.left = left + '%';
+      airplane.style.bottom = bottom + '%';
+      
+      if (value > 15) clearInterval(interval);
+    }, 100);
   }
  
   // Gestione partecipazione stanza
@@ -740,15 +975,8 @@
     socket.on('roomJoined', (room) => {
       console.log('Unito alla stanza:', room);
       
-      // Passa alla schermata di gioco
-      document.getElementById('lobby-screen').classList.add('hidden');
-      document.getElementById('game-room-screen').classList.remove('hidden');
-      
-      // Aggiorna UI
-      document.getElementById('room-title').textContent = room.name;
-      document.getElementById('room-code-display').textContent = 'Code: ' + room.code;
-      document.getElementById('round-info').textContent = 'Round 0/' + room.roundCount;
-      document.getElementById('credit-amount').textContent = room.initialCredits;
+      // Usa la stessa funzione di sostituzione della game room usata per la creazione
+      replaceGameRoom(room);
     });
     
     socket.on('roomError', (error) => {
