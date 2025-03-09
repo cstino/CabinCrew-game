@@ -1497,26 +1497,7 @@ async function selectBadge(badgeId) {
           prepareGameRoom(room);
         });
         
-        // Aggiunge pulsanti di test temporanei per debug
-        const debugControl = document.createElement('div');
-        debugControl.style.position = 'fixed';
-        debugControl.style.bottom = '10px';
-        debugControl.style.right = '10px';
-        debugControl.style.zIndex = '9999';
-        
-        const testGameRoomBtn = document.createElement('button');
-        testGameRoomBtn.textContent = 'Test Game Room';
-        testGameRoomBtn.addEventListener('click', function() {
-          prepareGameRoom({
-            name: 'Test Room',
-            code: '1234',
-            roundCount: 5,
-            currentRound: 0
-          });
-        });
-        
-        debugControl.appendChild(testGameRoomBtn);
-        document.body.appendChild(debugControl);
+        // Debug code rimosso per la versione di produzione
       });
     </script>
 </body>
