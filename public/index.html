@@ -17,25 +17,47 @@
   <script>
     // Nascondi il video quando si apre la game room
     document.addEventListener('DOMContentLoaded', function() {
+      // Funzione per nascondere e mostrare il video di sfondo
+      function updateVideoVisibility() {
+        const gameRoom = document.getElementById('game-room-screen');
+        const videoContainer = document.querySelector('.background-video-container');
+        
+        if (!videoContainer) return;
+        
+        if (gameRoom && !gameRoom.classList.contains('hidden')) {
+          videoContainer.style.display = 'none';
+          // Assicuriamoci che la game room sia visibile
+          gameRoom.style.display = 'block';
+          // Aggiungiamo uno stile di background fallback
+          gameRoom.style.backgroundColor = '#1a1b26';
+        } else {
+          videoContainer.style.display = 'block';
+        }
+      }
+      
+      // Osserva i cambiamenti della classe
       const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
           if (mutation.attributeName === 'class') {
-            const gameRoom = document.getElementById('game-room-screen');
-            const videoContainer = document.querySelector('.background-video-container');
-            
-            if (gameRoom && !gameRoom.classList.contains('hidden')) {
-              videoContainer.style.display = 'none';
-            } else {
-              videoContainer.style.display = 'block';
-            }
+            updateVideoVisibility();
           }
         });
       });
       
+      // Osserva anche il body per possibili cambiamenti nella struttura DOM
+      const bodyObserver = new MutationObserver(function(mutations) {
+        updateVideoVisibility();
+      });
+      
+      // Configura gli observer
       const gameRoom = document.getElementById('game-room-screen');
       if (gameRoom) {
         observer.observe(gameRoom, { attributes: true });
+        bodyObserver.observe(document.body, { childList: true, subtree: true });
       }
+      
+      // Verifica iniziale
+      updateVideoVisibility();
     });
   </script>
   <div id="app">
@@ -1195,33 +1217,78 @@ async function selectBadge(badgeId) {
         // Corregge i problemi di visualizzazione della game room
         const socket = io();
         
-        // Evento di creazione stanza
-        socket.on('roomCreated', function(room) {
-          // Rimuovi classe hidden
-          document.getElementById('game-room-screen').classList.remove('hidden');
+        // Funzione comune per preparare la game room
+        function prepareGameRoom(room) {
+          // Ottieni il riferimento alla game room
+          const gameRoomScreen = document.getElementById('game-room-screen');
           
-          // Assicurati che il video di background sia nascosto
-          document.querySelector('.background-video-container').style.display = 'none';
+          // Assicurati che sia visibile
+          gameRoomScreen.classList.remove('hidden');
+          gameRoomScreen.style.display = 'block';
+          
+          // Forza il display style
+          gameRoomScreen.style.position = 'relative';
+          gameRoomScreen.style.zIndex = '100';
+          gameRoomScreen.style.backgroundColor = '#1a1b26';
+          
+          // Nascondi esplicitamente il video di background
+          const videoContainer = document.querySelector('.background-video-container');
+          if (videoContainer) {
+            videoContainer.style.display = 'none';
+          }
+          
+          // Nascondi tutte le altre schermate
+          document.querySelectorAll('.screen').forEach(screen => {
+            if (screen.id !== 'game-room-screen') {
+              screen.classList.add('hidden');
+            }
+          });
           
           // Imposta i dati della stanza
-          document.getElementById('room-title').textContent = room.name;
-          document.getElementById('room-code-display').textContent = 'Code: ' + room.code;
-          document.getElementById('round-info').textContent = 'Round 0/' + room.roundCount;
+          document.getElementById('room-title').textContent = room.name || room.roomName;
+          document.getElementById('room-code-display').textContent = 'Code: ' + (room.code || room.roomCode);
+          document.getElementById('round-info').textContent = 'Round ' + (room.currentRound || 0) + '/' + room.roundCount;
+          
+          // Log per debug
+          console.log('Game Room preparata correttamente', {
+            display: window.getComputedStyle(gameRoomScreen).display,
+            visibility: window.getComputedStyle(gameRoomScreen).visibility,
+            zIndex: window.getComputedStyle(gameRoomScreen).zIndex
+          });
+        }
+        
+        // Evento di creazione stanza
+        socket.on('roomCreated', function(room) {
+          console.log('Evento roomCreated ricevuto', room);
+          prepareGameRoom(room);
         });
         
         // Lo stesso per l'evento join room
         socket.on('roomJoined', function(room) {
-          // Rimuovi classe hidden
-          document.getElementById('game-room-screen').classList.remove('hidden');
-          
-          // Assicurati che il video di background sia nascosto
-          document.querySelector('.background-video-container').style.display = 'none';
-          
-          // Imposta i dati della stanza
-          document.getElementById('room-title').textContent = room.name;
-          document.getElementById('room-code-display').textContent = 'Code: ' + room.code;
-          document.getElementById('round-info').textContent = 'Round 0/' + room.roundCount;
+          console.log('Evento roomJoined ricevuto', room);
+          prepareGameRoom(room);
         });
+        
+        // Aggiunge pulsanti di test temporanei per debug
+        const debugControl = document.createElement('div');
+        debugControl.style.position = 'fixed';
+        debugControl.style.bottom = '10px';
+        debugControl.style.right = '10px';
+        debugControl.style.zIndex = '9999';
+        
+        const testGameRoomBtn = document.createElement('button');
+        testGameRoomBtn.textContent = 'Test Game Room';
+        testGameRoomBtn.addEventListener('click', function() {
+          prepareGameRoom({
+            name: 'Test Room',
+            code: '1234',
+            roundCount: 5,
+            currentRound: 0
+          });
+        });
+        
+        debugControl.appendChild(testGameRoomBtn);
+        document.body.appendChild(debugControl);
       });
     </script>
 </body>
