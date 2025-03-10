@@ -209,6 +209,21 @@
     
     <!-- Game Room Screen -->
 <div id="game-room-screen" class="screen hidden">
+  <!-- Schermata Ready Overlay -->
+  <div id="ready-overlay" class="overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+    <h2 style="color:white; font-size:32px; margin-bottom:20px;">Siete pronti a partire?</h2>
+    <p style="color:#36e2ec; margin-bottom:40px; font-size:18px;">Tutti i giocatori devono premere "Ready" per iniziare la partita</p>
+    <div id="ready-players-list" style="margin-bottom:30px; width:80%; max-width:500px;">
+      <!-- Lista dei giocatori e loro stato, popolata dinamicamente -->
+    </div>
+    <button id="ready-start-button" style="background:linear-gradient(135deg,#4361ee,#3a56d4); border:none; color:white; padding:15px 40px; border-radius:12px; font-size:20px; cursor:pointer; font-weight:bold;">READY</button>
+  </div>
+  
+  <!-- Messaggio "Buon viaggio" -->
+  <div id="bon-voyage-message" class="overlay hidden" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; display:flex; justify-content:center; align-items:center;">
+    <h1 style="color:white; font-size:42px; text-shadow:0 0 20px rgba(54,226,236,0.8);">Buon viaggio, piloti!</h1>
+  </div>
+  
   <div class="aviator-container">
     <!-- Header con info stanza e moltiplicatori precedenti -->
     <div class="room-header">
@@ -219,15 +234,8 @@
           <span id="room-code-display">Code: 0000</span>
         </div>
       </div>
-      <div class="previous-multipliers">
-        <div class="prev-mult">1.52x</div>
-        <div class="prev-mult">2.72x</div>
-        <div class="prev-mult high">10.35x</div>
-        <div class="prev-mult">1.12x</div>
-        <div class="prev-mult">4.23x</div>
-        <div class="prev-mult">1.89x</div>
-        <div class="prev-mult medium">5.64x</div>
-        <div class="prev-mult">1.22x</div>
+      <div id="previous-multipliers" class="previous-multipliers">
+        <!-- I moltiplicatori precedenti verranno aggiunti dinamicamente -->
       </div>
     </div>
 
@@ -746,12 +754,8 @@
               <span id="room-code-display">Code: ${room.code || room.roomCode || '0000'}</span>
             </div>
           </div>
-          <div class="previous-multipliers" style="display:flex; gap:15px; overflow-x:auto; padding:10px 0;">
-            <div class="prev-mult" style="background:rgba(67,97,238,0.2); border-radius:6px; padding:8px 12px; font-weight:bold; color:#4361ee;">1.52x</div>
-            <div class="prev-mult" style="background:rgba(67,97,238,0.2); border-radius:6px; padding:8px 12px; font-weight:bold; color:#4361ee;">2.72x</div>
-            <div class="prev-mult" style="background:rgba(232,42,160,0.2); border-radius:6px; padding:8px 12px; font-weight:bold; color:#e82aa0;">10.35x</div>
-            <div class="prev-mult" style="background:rgba(67,97,238,0.2); border-radius:6px; padding:8px 12px; font-weight:bold; color:#4361ee;">1.12x</div>
-            <div class="prev-mult" style="background:rgba(67,97,238,0.2); border-radius:6px; padding:8px 12px; font-weight:bold; color:#4361ee;">4.23x</div>
+          <div id="previous-multipliers" class="previous-multipliers" style="display:flex; gap:15px; overflow-x:auto; padding:10px 0;">
+            <!-- I moltiplicatori precedenti verranno aggiunti dinamicamente -->
           </div>
         </div>
 
@@ -765,19 +769,7 @@
                 <h3 style="margin:0; font-size:18px; color:white;">Scommesse Round</h3>
               </div>
               <div class="bets-list" id="current-bets" style="overflow-y:auto; flex-grow:1; color:white; padding:10px;">
-                <!-- Scommesse di esempio -->
-                <div style="padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);">
-                  <div style="display:flex; justify-content:space-between;">
-                    <span>Giocatore 1</span>
-                    <span>0.5 credits</span>
-                  </div>
-                </div>
-                <div style="padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);">
-                  <div style="display:flex; justify-content:space-between;">
-                    <span>Giocatore 2</span>
-                    <span>1.0 credits</span>
-                  </div>
-                </div>
+                <!-- Le scommesse verranno popolate dinamicamente con i dati reali degli utenti -->
               </div>
             </div>
             
@@ -787,19 +779,7 @@
                 <h3 style="margin:0; font-size:18px; color:white;">Classifica</h3>
               </div>
               <div class="rankings-list" id="player-rankings" style="overflow-y:auto; flex-grow:1; color:white; padding:10px;">
-                <!-- Classifica di esempio -->
-                <div style="padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);">
-                  <div style="display:flex; justify-content:space-between;">
-                    <span>Giocatore 1</span>
-                    <span>10.0 credits</span>
-                  </div>
-                </div>
-                <div style="padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);">
-                  <div style="display:flex; justify-content:space-between;">
-                    <span>Giocatore 2</span>
-                    <span>8.5 credits</span>
-                  </div>
-                </div>
+                <!-- La classifica verrà popolata dinamicamente con i dati reali degli utenti -->
               </div>
             </div>
           </div>
@@ -808,7 +788,7 @@
           <div class="game-area" style="display:flex; flex-direction:column; gap:20px;">
             <!-- Visualizzazione del moltiplicatore -->
             <div class="multiplier-display" style="background:#111218; border-radius:12px; height:350px; position:relative; overflow:hidden; display:flex; justify-content:center; align-items:center; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-              <div class="multiplier-value" id="multiplier-display" style="font-size:5rem; font-weight:bold; color:#36e2ec; text-shadow:0 0 20px rgba(54,226,236,0.4); z-index:2;">1.00x</div>
+              <div class="multiplier-value" id="multiplier-display" style="font-size:5rem; font-weight:bold; color:#36e2ec; text-shadow:0 0 20px rgba(54,226,236,0.4); z-index:2; text-align:center; width:100%;">1.00x</div>
               <div class="airplane-animation" style="position:relative; width:100%; height:100%;">
                 <div class="airplane-container" style="position:absolute; bottom:0; left:0; width:100%; height:100%; pointer-events:none;">
                   <div class="airplane" style="position:absolute; bottom:10%; left:10%; font-size:30px; transform:rotate(45deg); transition:all 0.1s linear;">✈️</div>

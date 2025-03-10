@@ -121,6 +121,10 @@ function updateMultiplier(value) {
   const multiplierDisplay = document.getElementById('multiplier-display');
   multiplierDisplay.textContent = `${value.toFixed(2)}x`;
   
+  // Centra meglio il moltiplicatore nel display
+  multiplierDisplay.style.textAlign = 'center';
+  multiplierDisplay.style.width = '100%';
+  
   // Update animation
   updateMultiplierAnimation(value);
   
