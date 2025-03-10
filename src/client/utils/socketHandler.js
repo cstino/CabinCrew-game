@@ -31,38 +31,140 @@ function setupReadyOverlay(socket) {
       // Cambia il testo e disabilita il bottone
       readyButton.textContent = 'PRONTO!';
       readyButton.disabled = true;
-      readyButton.style.background = 'linear-gradient(135deg,#36e2ec,#1a9ca3)';
+      readyButton.classList.add('ready-confirmed');
+      
+      // Effetto visivo al click
+      readyButton.style.backgroundColor = '#34d399';
+      setTimeout(() => {
+        readyButton.style.backgroundColor = '';
+      }, 300);
       
       // Aggiorna la lista dei giocatori pronti
       updateReadyPlayers(socket);
     });
   }
   
+  // Gestisci la visualizzazione dell'overlay ready
+  socket.on('showInitialReadyScreen', () => {
+    console.log('Evento showInitialReadyScreen ricevuto');
+    
+    // Assicurati che ci troviamo nella game room
+    const gameRoomScreen = document.getElementById('game-room-screen');
+    if (gameRoomScreen && gameRoomScreen.classList.contains('hidden')) {
+      console.log('Game room non visibile, mostrando prima la game room');
+      // Mostra la game room rimuovendo la classe hidden direttamente
+      document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.add('hidden');
+      });
+      gameRoomScreen.classList.remove('hidden');
+    }
+    
+    // Piccolo ritardo per garantire che il DOM sia stato renderizzato
+    setTimeout(() => {
+      const readyOverlay = document.getElementById('ready-overlay');
+      if (readyOverlay) {
+        console.log('Mostrando l\'overlay ready');
+        
+        // Reset dello stato del pulsante Ready
+        const readyButton = document.getElementById('ready-start-button');
+        if (readyButton) {
+          readyButton.textContent = 'READY';
+          readyButton.disabled = false;
+          readyButton.classList.remove('ready-confirmed');
+        }
+        
+        // Nascondi il messaggio "tutti pronti"
+        const allReadyMessage = document.getElementById('all-ready-message');
+        if (allReadyMessage) {
+          allReadyMessage.classList.add('hidden');
+        }
+        
+        // Mostra l'overlay
+        readyOverlay.classList.remove('hidden');
+      } else {
+        console.error('Elemento ready-overlay non trovato nel DOM');
+      }
+    }, 200);
+  });
+  
+  // Handler per la visualizzazione diretta dell'overlay ready (backup)
+  socket.on('showInitialReadyScreenDirect', () => {
+    console.log('Evento showInitialReadyScreenDirect ricevuto (invio diretto)');
+    
+    // Mostra direttamente l'overlay ready senza verifiche aggiuntive
+    const readyOverlay = document.getElementById('ready-overlay');
+    if (readyOverlay) {
+      console.log('Mostrando l\'overlay ready (via evento diretto)');
+      readyOverlay.classList.remove('hidden');
+      
+      // Reset dello stato del pulsante Ready
+      const readyButton = document.getElementById('ready-start-button');
+      if (readyButton) {
+        readyButton.textContent = 'READY';
+        readyButton.disabled = false;
+        readyButton.classList.remove('ready-confirmed');
+      }
+      
+      // Nascondi il messaggio "tutti pronti"
+      const allReadyMessage = document.getElementById('all-ready-message');
+      if (allReadyMessage) {
+        allReadyMessage.classList.add('hidden');
+      }
+    } else {
+      console.error('Elemento ready-overlay non trovato (evento diretto)');
+    }
+  });
+  
   // Gestisci l'update dello stato dei giocatori
   socket.on('readyPlayersUpdate', (players) => {
     updateReadyPlayersList(players);
     
-    // Se tutti sono pronti, nascondi l'overlay dopo un breve ritardo
-    const allReady = players.every(player => player.ready);
-    if (allReady) {
-      setTimeout(() => {
-        const readyOverlay = document.getElementById('ready-overlay');
-        if (readyOverlay) {
-          readyOverlay.classList.add('hidden');
-          
-          // Mostra il messaggio di buon viaggio
-          const bonVoyageMessage = document.getElementById('bon-voyage-message');
-          if (bonVoyageMessage) {
-            bonVoyageMessage.classList.remove('hidden');
-            
-            // Nascondi dopo 1 secondo
-            setTimeout(() => {
-              bonVoyageMessage.classList.add('hidden');
-            }, 1000);
-          }
-        }
-      }, 500);
+    // Controlla se tutti i giocatori sono pronti
+    const allReady = players.every(player => player.initialReady);
+    const allReadyMessage = document.getElementById('all-ready-message');
+    
+    if (allReady && allReadyMessage) {
+      allReadyMessage.classList.remove('hidden');
+      
+      // Aggiungi un effetto sonoro (se disponibile)
+      try {
+        const audio = new Audio('/asset/audio/ready-sound.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(err => console.log('Audio play failed', err));
+      } catch (err) {
+        console.log('Audio not supported', err);
+      }
+    } else if (allReadyMessage) {
+      allReadyMessage.classList.add('hidden');
     }
+  });
+  
+  // Gestisci quando tutti i giocatori sono pronti
+  socket.on('allPlayersReady', () => {
+    // Mostra il messaggio "tutti pronti" nell'overlay
+    const allReadyMessage = document.getElementById('all-ready-message');
+    if (allReadyMessage) {
+      allReadyMessage.classList.remove('hidden');
+    }
+    
+    // Nascondi l'overlay di ready dopo un breve ritardo
+    setTimeout(() => {
+      const readyOverlay = document.getElementById('ready-overlay');
+      if (readyOverlay) {
+        readyOverlay.classList.add('hidden');
+      }
+      
+      // Mostra il messaggio di buon viaggio
+      const bonVoyageMessage = document.getElementById('bon-voyage-message');
+      if (bonVoyageMessage) {
+        bonVoyageMessage.classList.remove('hidden');
+        
+        // Nascondi dopo 2 secondi
+        setTimeout(() => {
+          bonVoyageMessage.classList.add('hidden');
+        }, 2000);
+      }
+    }, 2000); // Attendi 2 secondi prima di nascondere l'overlay
   });
 }
 
@@ -75,34 +177,94 @@ function updateReadyPlayersList(players) {
   
   players.forEach(player => {
     const playerItem = document.createElement('div');
-    playerItem.style.display = 'flex';
-    playerItem.style.justifyContent = 'space-between';
-    playerItem.style.alignItems = 'center';
-    playerItem.style.padding = '10px';
-    playerItem.style.marginBottom = '10px';
-    playerItem.style.background = 'rgba(255,255,255,0.1)';
-    playerItem.style.borderRadius = '8px';
+    playerItem.className = 'ready-player-item';
+    
+    // Aggiungi classe speciale se il giocatore è pronto
+    if (player.initialReady) {
+      playerItem.classList.add('player-ready');
+    }
+    
+    const playerInfo = document.createElement('div');
+    playerInfo.className = 'ready-player-info';
+    
+    const playerBadge = document.createElement('div');
+    playerBadge.className = 'ready-player-badge';
+    
+    // Se il giocatore ha un badge, mostralo
+    if (player.selectedBadge) {
+      const badgeImg = document.createElement('img');
+      
+      // Verifica se il path del badge include già '/asset/images/badges/'
+      if (player.selectedBadge.includes('/')) {
+        badgeImg.src = player.selectedBadge;
+      } else {
+        badgeImg.src = `/asset/images/badges/${player.selectedBadge}.png`;
+      }
+      
+      badgeImg.alt = player.selectedBadge;
+      badgeImg.onerror = function() {
+        // Fallback se l'immagine non si carica
+        this.onerror = null;
+        this.src = '/asset/images/badges/default-badge.png';
+      };
+      playerBadge.appendChild(badgeImg);
+    } else {
+      // Default icon se non ha badge
+      const defaultImg = document.createElement('img');
+      defaultImg.src = '/asset/images/badges/default-badge.png';
+      defaultImg.alt = 'Default badge';
+      playerBadge.appendChild(defaultImg);
+    }
     
     const playerName = document.createElement('span');
+    playerName.className = 'ready-player-name';
     playerName.textContent = player.username;
-    playerName.style.color = 'white';
-    playerName.style.fontSize = '18px';
     
-    const readyStatus = document.createElement('span');
-    if (player.ready) {
-      readyStatus.textContent = '✓ Pronto';
-      readyStatus.style.color = '#36e2ec';
-    } else {
-      readyStatus.textContent = '○ In attesa';
-      readyStatus.style.color = '#ff9e00';
+    // Evidenzia il giocatore corrente
+    const currentUser = getCurrentUser();
+    if (currentUser && (player.id === currentUser.uid || player.id === currentUser.id)) {
+      playerName.classList.add('current-player');
+      playerName.textContent += ' (tu)';
     }
-    readyStatus.style.fontWeight = 'bold';
     
-    playerItem.appendChild(playerName);
-    playerItem.appendChild(readyStatus);
+    playerInfo.appendChild(playerBadge);
+    playerInfo.appendChild(playerName);
+    
+    const playerStatus = document.createElement('div');
+    playerStatus.className = 'ready-player-status';
+    
+    const statusIndicator = document.createElement('div');
+    statusIndicator.className = `ready-status-indicator ${player.initialReady ? 'ready' : 'not-ready'}`;
+    
+    const statusText = document.createElement('span');
+    statusText.className = `ready-status-text ${player.initialReady ? 'ready' : 'not-ready'}`;
+    statusText.textContent = player.initialReady ? 'Pronto' : 'In attesa';
+    
+    playerStatus.appendChild(statusIndicator);
+    playerStatus.appendChild(statusText);
+    
+    playerItem.appendChild(playerInfo);
+    playerItem.appendChild(playerStatus);
+    
+    // Animazione di entrata
+    playerItem.style.animation = 'fadeIn 0.3s ease-in-out forwards';
+    playerItem.style.animationDelay = (players.indexOf(player) * 0.1) + 's';
     
     playersList.appendChild(playerItem);
   });
+  
+  // Aggiungiamo un contatore per mostrare quanti giocatori sono pronti
+  const readyCount = players.filter(player => player.initialReady).length;
+  const totalPlayers = players.length;
+  
+  const readyCounter = document.createElement('div');
+  readyCounter.className = 'ready-counter';
+  readyCounter.style.textAlign = 'center';
+  readyCounter.style.margin = '15px 0';
+  readyCounter.style.fontSize = '1.1rem';
+  readyCounter.textContent = `${readyCount}/${totalPlayers} giocatori pronti`;
+  
+  playersList.appendChild(readyCounter);
 }
 
 // Funzione per richiedere un aggiornamento della lista giocatori
@@ -235,14 +397,36 @@ function initializeSocketHandlers(socket) {
   socket.on('roomCreated', (room) => {
     console.log('Room created:', room);
     updateRoomInfo(room);
-    showScreen('game-room-screen');
+    
+    // Mostra la schermata di game room
+    document.querySelectorAll('.screen').forEach(screen => {
+      screen.classList.add('hidden');
+    });
+    const gameRoomScreen = document.getElementById('game-room-screen');
+    if (gameRoomScreen) {
+      gameRoomScreen.classList.remove('hidden');
+      console.log('Game room mostrata, in attesa dell\'overlay ready');
+    }
+    
+    // L'overlay ready verrà mostrato quando arriverà l'evento 'showInitialReadyScreen'
   });
 
   // Room joined response
   socket.on('roomJoined', (room) => {
     console.log('Room joined:', room);
     updateRoomInfo(room);
-    showScreen('game-room-screen');
+    
+    // Mostra la schermata di game room
+    document.querySelectorAll('.screen').forEach(screen => {
+      screen.classList.add('hidden');
+    });
+    const gameRoomScreen = document.getElementById('game-room-screen');
+    if (gameRoomScreen) {
+      gameRoomScreen.classList.remove('hidden');
+      console.log('Game room mostrata (join), in attesa dell\'overlay ready');
+    }
+    
+    // L'overlay ready verrà mostrato quando arriverà l'evento 'showInitialReadyScreen'
   });
 
   // Player joined/left updates
@@ -300,18 +484,52 @@ function initializeSocketHandlers(socket) {
       readyOverlay.classList.add('hidden');
     }
     
+    // Nascondi anche eventuali messaggi "all ready"
+    const allReadyMessage = document.getElementById('all-ready-message');
+    if (allReadyMessage) {
+      allReadyMessage.classList.add('hidden');
+    }
+    
     // Mostra il messaggio di "Buon viaggio, piloti!"
     const bonVoyageMessage = document.getElementById('bon-voyage-message');
     if (bonVoyageMessage) {
       bonVoyageMessage.classList.remove('hidden');
       
-      // Nascondi dopo 1 secondo
+      // Nascondi dopo 1.5 secondi
       setTimeout(() => {
         bonVoyageMessage.classList.add('hidden');
-      }, 1000);
+      }, 1500);
     }
     
     updateStatusMessage(`Round ${data.roundNumber} starting...`);
+    
+    // Attiva il timer di countdown per la puntata
+    const countdownTimer = document.getElementById('countdown-timer');
+    const timerValue = document.getElementById('timer-value');
+    
+    if (countdownTimer && timerValue) {
+      countdownTimer.classList.remove('hidden');
+      
+      // Inizia il countdown da 10 secondi
+      let timeLeft = 10;
+      timerValue.textContent = timeLeft;
+      
+      const countdownInterval = setInterval(() => {
+        timeLeft--;
+        timerValue.textContent = timeLeft;
+        
+        if (timeLeft <= 3) {
+          // Aggiunge una classe per l'effetto di urgenza
+          countdownTimer.classList.add('urgent');
+        }
+        
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+          countdownTimer.classList.remove('urgent');
+          countdownTimer.classList.add('hidden');
+        }
+      }, 1000);
+    }
   });
 
   // Countdown timer

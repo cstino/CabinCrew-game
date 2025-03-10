@@ -17,7 +17,8 @@ class RoomManager {
       enableBonuses,
       players: {},
       currentRound: 0,
-      gameState: 'waiting' // waiting, playing, results
+      gameState: 'waiting', // waiting, playing, results
+      initialReadyState: false // Flag per indicare se il ready check iniziale è stato completato
     };
     
     this.rooms[roomCode] = room;
@@ -32,7 +33,7 @@ class RoomManager {
     delete this.rooms[roomCode];
   }
   
-  addPlayerToRoom(roomCode, playerId, username, credits) {
+  addPlayerToRoom(roomCode, playerId, username, credits, selectedBadge) {
     const room = this.getRoom(roomCode);
     if (!room) return false;
     
@@ -46,7 +47,9 @@ class RoomManager {
       betAmount: 0.10,
       bonuses: {
         resurrection: room.enableBonuses
-      }
+      },
+      selectedBadge: selectedBadge || "default-badge", // Badge selezionato dal giocatore
+      initialReady: false // Flag per il ready check iniziale
     };
     
     return true;
@@ -86,14 +89,29 @@ class RoomManager {
     return { success: true };
   }
   
-  areAllPlayersReady(roomCode) {
+  areAllPlayersReady(roomCode, checkInitialReady = false) {
     const room = this.getRoom(roomCode);
     if (!room) return false;
     
     const players = Object.values(room.players);
     if (players.length < 2) return false; // Need at least 2 players
     
+    // Se stiamo verificando lo stato iniziale di ready
+    if (checkInitialReady) {
+      return players.every(player => player.initialReady);
+    }
+    
+    // Altrimenti verifica lo stato normale di ready per i round
     return players.every(player => player.ready);
+  }
+  
+  // Metodo per impostare lo stato iniziale di ready
+  setPlayerInitialReady(roomCode, playerId) {
+    const room = this.getRoom(roomCode);
+    if (!room || !room.players[playerId]) return false;
+    
+    room.players[playerId].initialReady = true;
+    return true;
   }
   
   resetPlayersReadyState(roomCode) {

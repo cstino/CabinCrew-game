@@ -210,18 +210,74 @@
     <!-- Game Room Screen -->
 <div id="game-room-screen" class="screen hidden">
   <!-- Schermata Ready Overlay -->
-  <div id="ready-overlay" class="overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-    <h2 style="color:white; font-size:32px; margin-bottom:20px;">Siete pronti a partire?</h2>
-    <p style="color:#36e2ec; margin-bottom:40px; font-size:18px;">Tutti i giocatori devono premere "Ready" per iniziare la partita</p>
-    <div id="ready-players-list" style="margin-bottom:30px; width:80%; max-width:500px;">
-      <!-- Lista dei giocatori e loro stato, popolata dinamicamente -->
+  <div id="ready-overlay" class="ready-overlay hidden">
+    <h2>Siete pronti a partire?</h2>
+    <p>Tutti i giocatori devono premere "Ready" per iniziare la partita</p>
+    <div class="ready-players-container">
+      <div id="ready-players-list">
+        <!-- Lista dei giocatori e loro stato, popolata dinamicamente -->
+      </div>
     </div>
-    <button id="ready-start-button" style="background:linear-gradient(135deg,#4361ee,#3a56d4); border:none; color:white; padding:15px 40px; border-radius:12px; font-size:20px; cursor:pointer; font-weight:bold;">READY</button>
+    <button id="ready-start-button" class="ready-button">READY</button>
+    <div id="all-ready-message" class="all-ready-message hidden">
+      Tutti i giocatori sono pronti! Il gioco inizierà a breve...
+    </div>
   </div>
   
+  <!-- Debug Button (solo per test, da rimuovere in produzione) -->
+  <button id="debug-show-ready" style="position: fixed; top: 10px; right: 10px; z-index: 9999; background: #e82aa0; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; display: none;">Mostra Ready Overlay</button>
+  
+  <script>
+    // Script che forza la visualizzazione dell'overlay all'ingresso nella game room
+    document.addEventListener('DOMContentLoaded', function() {
+      // Pulsante di debug per test manuali
+      const debugButton = document.getElementById('debug-show-ready');
+      if (debugButton) {
+        debugButton.style.display = 'block';
+        debugButton.addEventListener('click', function() {
+          const readyOverlay = document.getElementById('ready-overlay');
+          if (readyOverlay) {
+            readyOverlay.classList.remove('hidden');
+            console.log('Ready overlay mostrato manualmente via pulsante');
+          }
+        });
+      }
+      
+      // Osservatore per rilevare quando la game room diventa visibile
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.attributeName === 'class') {
+            const gameRoom = document.getElementById('game-room-screen');
+            if (gameRoom && !gameRoom.classList.contains('hidden')) {
+              console.log('Game room diventata visibile, mostrando ready overlay...');
+              
+              // Mostra l'overlay ready dopo un breve ritardo
+              setTimeout(function() {
+                const readyOverlay = document.getElementById('ready-overlay');
+                if (readyOverlay) {
+                  readyOverlay.classList.remove('hidden');
+                  console.log('Ready overlay mostrato automaticamente');
+                }
+              }, 500);
+              
+              // Disconnetti l'observer dopo che ha fatto il suo lavoro
+              observer.disconnect();
+            }
+          }
+        });
+      });
+      
+      // Inizia ad osservare la game room
+      const gameRoom = document.getElementById('game-room-screen');
+      if (gameRoom) {
+        observer.observe(gameRoom, { attributes: true });
+      }
+    });
+  </script>
+  
   <!-- Messaggio "Buon viaggio" -->
-  <div id="bon-voyage-message" class="overlay hidden" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; display:flex; justify-content:center; align-items:center;">
-    <h1 style="color:white; font-size:42px; text-shadow:0 0 20px rgba(54,226,236,0.8);">Buon viaggio, piloti!</h1>
+  <div id="bon-voyage-message" class="bon-voyage-message hidden">
+    <h1>Buon viaggio, piloti!</h1>
   </div>
   
   <div class="aviator-container">

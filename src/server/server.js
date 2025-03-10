@@ -46,8 +46,14 @@ io.on('connection', (socket) => {
       return;
     }
     
-    // Aggiungi utente alla stanza
-    roomManager.addPlayerToRoom(roomCode, socket.id, userData.username || 'Giocatore', initialCredits);
+    // Aggiungi utente alla stanza con il badge selezionato
+    roomManager.addPlayerToRoom(
+      roomCode, 
+      socket.id, 
+      userData.username || 'Giocatore', 
+      initialCredits,
+      userData.selectedBadge
+    );
     
     // Memorizza il roomCode per questo socket
     userRooms[socket.id] = roomCode;
@@ -57,6 +63,22 @@ io.on('connection', (socket) => {
     
     // Notifica il client
     socket.emit('roomCreated', room);
+    
+    // Pausa più lunga per assicurarsi che il client abbia tempo di renderizzare la game room
+    setTimeout(() => {
+      // Manda l'evento per mostrare la schermata di ready per tutti i giocatori
+      io.to(roomCode).emit('showInitialReadyScreen');
+      
+      // Aggiorna la lista dei giocatori pronti
+      io.to(roomCode).emit('readyPlayersUpdate', roomManager.getRoomPlayers(roomCode));
+      
+      console.log(`Inviata richiesta di showInitialReadyScreen alla stanza ${roomCode}`);
+      
+      // Invio anche direttamente al socket corrente, per sicurezza
+      socket.emit('showInitialReadyScreenDirect', true);
+    }, 1000); // Aumentato a 1 secondo
+    
+    // Notifica tutti i giocatori nella stanza
     io.to(roomCode).emit('playerJoined', roomManager.getRoomPlayers(roomCode));
     
     console.log('Stanza creata:', roomCode);
@@ -74,8 +96,14 @@ io.on('connection', (socket) => {
       return;
     }
     
-    // Aggiungi utente alla stanza
-    roomManager.addPlayerToRoom(roomCode, socket.id, userData.username || 'Giocatore', room.initialCredits);
+    // Aggiungi utente alla stanza con il badge selezionato
+    roomManager.addPlayerToRoom(
+      roomCode, 
+      socket.id, 
+      userData.username || 'Giocatore', 
+      room.initialCredits,
+      userData.selectedBadge
+    );
     
     // Memorizza il roomCode per questo socket
     userRooms[socket.id] = roomCode;
@@ -85,7 +113,31 @@ io.on('connection', (socket) => {
     
     // Notifica il client
     socket.emit('roomJoined', room);
+    
+    // Se la partita non è ancora iniziata (initialReadyState è false)
+    // mostra la schermata di ready all'utente che si è appena unito
+    if (!room.initialReadyState) {
+      // Pausa per assicurarsi che il client abbia tempo di renderizzare la game room
+      setTimeout(() => {
+        // Mostra la schermata di ready a TUTTI i giocatori della stanza
+        // per assicurarsi che tutti vedano il nuovo giocatore nella lista
+        io.to(roomCode).emit('showInitialReadyScreen');
+        
+        // Invia anche un aggiornamento con lo stato attuale di tutti i giocatori
+        io.to(roomCode).emit('readyPlayersUpdate', roomManager.getRoomPlayers(roomCode));
+        
+        // Invio anche direttamente al socket corrente, per sicurezza
+        socket.emit('showInitialReadyScreenDirect', true);
+        
+        console.log(`Inviata richiesta di showInitialReadyScreen al nuovo giocatore nella stanza ${roomCode}`);
+      }, 1000);
+    }
+    
+    // Notifica tutti i giocatori nella stanza
     io.to(roomCode).emit('playerJoined', roomManager.getRoomPlayers(roomCode));
+    
+    // Aggiorna lo stato dei giocatori ready per tutti
+    io.to(roomCode).emit('readyPlayersUpdate', roomManager.getRoomPlayers(roomCode));
     
     console.log('Giocatore unito alla stanza:', roomCode);
   });
@@ -122,23 +174,37 @@ io.on('connection', (socket) => {
     
     // Se è la fase iniziale di ready
     if (isInitialReady) {
-      // Aggiorna solo lo stato di ready del giocatore senza avviare il round
       const room = roomManager.getRoom(roomCode);
-      if (room && room.players[socket.id]) {
-        room.players[socket.id].ready = true;
+      if (!room || !room.players[socket.id]) return;
+      
+      // Imposta lo stato iniziale di ready del giocatore
+      roomManager.setPlayerInitialReady(roomCode, socket.id);
+      
+      // Log dell'azione
+      console.log(`Giocatore ${room.players[socket.id].username} ha confermato ready nella stanza ${roomCode}`);
+      
+      // Notifica tutti i giocatori dello stato di ready
+      io.to(roomCode).emit('readyPlayersUpdate', roomManager.getRoomPlayers(roomCode));
+      
+      // Controlla se tutti i giocatori sono pronti
+      if (roomManager.areAllPlayersReady(roomCode, true)) {
+        // Aggiorna il flag di inizializzazione completata
+        room.initialReadyState = true;
         
-        // Notifica tutti i giocatori dello stato di ready
-        io.to(roomCode).emit('readyPlayersUpdate', roomManager.getRoomPlayers(roomCode));
+        console.log(`Tutti i giocatori sono pronti nella stanza ${roomCode}, il gioco sta per iniziare`);
         
-        // Se tutti sono pronti, avvia il primo round dopo un breve ritardo
-        if (roomManager.areAllPlayersReady(roomCode)) {
+        // Notifica tutti i giocatori che il gioco sta per iniziare
+        io.to(roomCode).emit('allPlayersReady');
+        
+        setTimeout(() => {
+          // Aggiorna il round corrente a 1 prima di avviare
+          room.currentRound = 1;
+          
+          // Avvia il primo round dopo un breve ritardo (per mostrare il messaggio "Buon viaggio")
           setTimeout(() => {
-            // Aggiorna il round corrente a 1 prima di avviare
-            room.currentRound = 1;
-            // Start the first round
             gameManager.startRound(roomCode);
           }, 2000);
-        }
+        }, 3000); // Aumentato il tempo per permettere l'effetto visivo del messaggio "Tutti pronti"
       }
       return;
     }
@@ -151,14 +217,21 @@ io.on('connection', (socket) => {
       return;
     }
     
+    // Recupera informazioni sulla stanza
+    const room = roomManager.getRoom(roomCode);
+    if (!room) return;
+    
+    // Log dell'azione
+    console.log(`Giocatore ${room.players[socket.id].username} è pronto per il round ${room.currentRound}`);
+    
     // Notify all players about the ready state
     io.to(roomCode).emit('playerReadyUpdate', roomManager.getRoomPlayers(roomCode));
     
     // Check if all players are ready to start the next round
     if (roomManager.areAllPlayersReady(roomCode)) {
-      const room = roomManager.getRoom(roomCode);
-      
       if (room && room.gameState === 'waiting') {
+        console.log(`Tutti i giocatori sono pronti per il round ${room.currentRound} nella stanza ${roomCode}`);
+        
         // Start the next round
         gameManager.startRound(roomCode);
       }
